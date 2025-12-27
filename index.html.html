@@ -1,0 +1,4964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrendX - Viral Video Prediction Markets</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0a0a0a;
+            --card-bg: #111111;
+            --border: #333333;
+            --border-hover: #00ff00;
+            --yes-green: #00ff00;
+            --no-red: #ff4444;
+            --info-cyan: #00ffff;
+            --text-white: #ffffff;
+            --text-muted: #888888;
+            --text-dim: #666666;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: var(--bg-dark);
+            color: var(--text-white);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--card-bg);
+            border-bottom: 2px solid var(--border);
+            padding: 20px;
+            position: relative;
+            z-index: 100;
+        }
+
+        .header h1 {
+            color: var(--yes-green);
+            font-size: 2em;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px var(--yes-green);
+        }
+
+        /* Hamburger Menu Styles */
+        .hamburger-btn {
+            background: var(--card-bg);
+            border: 2px solid var(--yes-green);
+            color: var(--yes-green);
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hamburger-btn:hover {
+            background: var(--yes-green);
+            color: var(--bg-dark);
+        }
+
+        .feedback-btn {
+            background: linear-gradient(135deg, var(--info-cyan), var(--yes-green));
+            border: 2px solid var(--info-cyan);
+            color: var(--bg-dark);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .feedback-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 3000;
+        }
+
+        .menu-overlay.active {
+            display: block;
+        }
+
+        .menu-panel {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 350px;
+            height: 100%;
+            background: var(--bg-secondary);
+            border-left: 2px solid var(--yes-green);
+            border-radius: 20px 0 0 20px;
+            z-index: 3001;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .menu-panel.active {
+            right: 0;
+        }
+
+        .menu-header {
+            padding: 20px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .menu-header h2 {
+            color: var(--yes-green);
+            margin: 0;
+        }
+
+        .menu-close {
+            background: none;
+            border: none;
+            color: var(--yes-green);
+            font-size: 2em;
+            cursor: pointer;
+            padding: 0;
+            line-height: 0.8;
+        }
+
+        .menu-section {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .menu-section-title {
+            color: var(--info-cyan);
+            font-size: 0.85em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .menu-section.collapsible .menu-section-title {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .menu-section.collapsible .menu-section-title:hover {
+            color: var(--yes-green);
+        }
+
+        .menu-arrow {
+            transition: transform 0.3s;
+        }
+
+        .menu-section.collapsible.collapsed .menu-arrow {
+            transform: rotate(-90deg);
+        }
+
+        .menu-section.collapsible.collapsed .menu-buttons {
+            display: none;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .menu-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-white);
+            padding: 12px 15px;
+            text-align: left;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            transition: all 0.2s;
+        }
+
+        .menu-btn:hover {
+            background: var(--border);
+            border-color: var(--yes-green);
+            color: var(--yes-green);
+        }
+
+        .menu-btn.primary {
+            border-color: var(--yes-green);
+            color: var(--yes-green);
+        }
+
+        .menu-btn.primary:hover {
+            background: var(--yes-green);
+            color: var(--bg-dark);
+        }
+
+        .menu-btn.danger {
+            border-color: var(--no-red);
+            color: var(--no-red);
+        }
+
+        .menu-btn.danger:hover {
+            background: var(--no-red);
+            color: var(--text-white);
+        }
+
+        .menu-btn.secondary {
+            border-color: var(--info-cyan);
+            color: var(--info-cyan);
+        }
+
+        .menu-btn.secondary:hover {
+            background: var(--info-cyan);
+            color: var(--bg-dark);
+        }
+
+        .auto-status {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            background: rgba(255, 0, 0, 0.2);
+            color: var(--no-red);
+        }
+
+        .auto-status.on {
+            background: rgba(0, 255, 0, 0.2);
+            color: var(--yes-green);
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            color: var(--yes-green);
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button {
+            background: var(--card-bg);
+            color: var(--yes-green);
+            border: 2px solid var(--yes-green);
+            border-radius: 25px;
+            padding: 8px 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: var(--yes-green);
+            color: var(--bg-dark);
+            box-shadow: 0 0 15px var(--yes-green);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .time-display {
+            margin-left: auto;
+            color: var(--info-cyan);
+            font-size: 1.1em;
+        }
+
+        .markets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .market-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 24px;
+            transition: all 0.3s;
+        }
+
+        .market-card:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+
+        .market-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .market-category {
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .market-badge {
+            font-size: 0.8em;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .market-badge.hot {
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--no-red);
+            border: 1px solid var(--no-red);
+        }
+
+        .market-badge.warm {
+            background: rgba(255, 136, 0, 0.2);
+            color: var(--orange);
+            border: 1px solid var(--orange);
+        }
+
+        .market-badge.cold {
+            background: rgba(68, 68, 255, 0.2);
+            color: #4444ff;
+            border: 1px solid #4444ff;
+        }
+
+        .market-badge.ending-soon {
+            background: rgba(255, 204, 0, 0.2);
+            color: #ffcc00;
+            border: 1px solid #ffcc00;
+            animation: pulse 2s infinite;
+        }
+
+        .market-badge.best-odds {
+            background: rgba(0, 255, 255, 0.2);
+            color: var(--info-cyan);
+            border: 1px solid var(--info-cyan);
+        }
+
+        .market-badge.popular {
+            background: rgba(255, 0, 255, 0.2);
+            color: #ff00ff;
+            border: 1px solid #ff00ff;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .market-creator {
+            color: var(--text-muted);
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .market-thumbnail {
+            width: 100%;
+            aspect-ratio: 9 / 16;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin: 12px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            max-height: 500px;
+        }
+
+        .market-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 16px;
+        }
+
+        .thumbnail-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-dim);
+        }
+
+        .thumbnail-placeholder-icon {
+            font-size: 6em;
+            opacity: 0.7;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+
+        .thumbnail-placeholder-text {
+            font-size: 0.9em;
+            opacity: 0.5;
+        }
+
+        .play-overlay {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 255, 0, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: var(--bg-dark);
+            opacity: 0.8;
+            transition: all 0.3s;
+        }
+
+        .market-thumbnail:hover .play-overlay {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .market-question {
+            font-size: 1.1em;
+            color: var(--text-white);
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .market-deadline {
+            color: var(--info-cyan);
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .engagement-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            font-size: 0.9em;
+        }
+
+        .engagement-stat {
+            color: var(--text-muted);
+        }
+
+        .engagement-stat strong {
+            color: var(--text-white);
+        }
+
+        .progress-section {
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #222;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            margin: 5px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--yes-green), var(--info-cyan));
+            border-radius: 15px;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+
+        .betting-section {
+            border-top: 1px solid var(--border);
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+
+        .odds-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .odd-card {
+            background: #0d0d0d;
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .odd-card.yes {
+            border-color: var(--yes-green);
+        }
+
+        .odd-card.no {
+            border-color: var(--no-red);
+        }
+
+        .odd-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .odd-card.yes .odd-label {
+            color: var(--yes-green);
+        }
+
+        .odd-card.no .odd-label {
+            color: var(--no-red);
+        }
+
+        .odd-price {
+            font-size: 1.5em;
+            margin-bottom: 3px;
+        }
+
+        .odd-cost {
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+
+        .odd-win {
+            font-size: 0.85em;
+            color: var(--info-cyan);
+        }
+
+        .trade-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .quick-amounts {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-btn {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid var(--yes-green);
+            color: var(--yes-green);
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .quick-btn:hover {
+            background: var(--yes-green);
+            color: var(--bg-dark);
+            transform: translateY(-2px);
+        }
+
+        .quick-btn.max {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: var(--info-cyan);
+            color: var(--info-cyan);
+        }
+
+        .quick-btn.max:hover {
+            background: var(--info-cyan);
+            color: var(--bg-dark);
+        }
+
+        /* Filter Controls */
+        .filter-controls {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-label {
+            color: var(--text-muted);
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .filter-btn {
+            background: rgba(0, 255, 0, 0.05);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            color: var(--text-white);
+            padding: 8px 16px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            background: rgba(0, 255, 0, 0.15);
+            border-color: var(--yes-green);
+            transform: translateY(-1px);
+        }
+
+        .filter-btn.active {
+            background: var(--yes-green);
+            color: var(--bg-dark);
+            border-color: var(--yes-green);
+            font-weight: bold;
+        }
+
+        .sort-select {
+            background: #0d0d0d;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-white);
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+
+        input[type="number"] {
+            flex: 1;
+            background: #0d0d0d;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            color: var(--text-white);
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+        }
+
+        .btn-buy-yes {
+            background: var(--card-bg);
+            color: var(--yes-green);
+            border: 2px solid var(--yes-green);
+        }
+
+        .btn-buy-yes:hover {
+            background: var(--yes-green);
+            color: var(--bg-dark);
+        }
+
+        .btn-buy-no {
+            background: var(--card-bg);
+            color: var(--no-red);
+            border: 2px solid var(--no-red);
+        }
+
+        .btn-buy-no:hover {
+            background: var(--no-red);
+            color: var(--bg-dark);
+        }
+
+        .position-section {
+            border-top: 1px solid var(--border);
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+
+        .position-header {
+            color: var(--info-cyan);
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+
+        .position-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .position-detail {
+            color: var(--text-muted);
+        }
+
+        .position-detail strong {
+            color: var(--text-white);
+        }
+
+        .position-pnl {
+            font-size: 1em;
+            margin: 8px 0;
+        }
+
+        .position-pnl.positive {
+            color: var(--yes-green);
+        }
+
+        .position-pnl.negative {
+            color: var(--no-red);
+        }
+
+        .sell-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .sell-controls label {
+            min-width: fit-content;
+        }
+
+        .sell-controls input {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .sell-controls button {
+            padding: 8px 16px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .resolved-banner {
+            background: var(--info-cyan);
+            color: var(--bg-dark);
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .resolved-banner.yes {
+            background: var(--yes-green);
+        }
+
+        .resolved-banner.no {
+            background: var(--no-red);
+        }
+
+        /* ==================== TOAST NOTIFICATIONS ==================== */
+        .toast-container {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: var(--card-bg);
+            border: 2px solid var(--yes-green);
+            border-radius: 15px;
+            padding: 1rem 1.5rem;
+            min-width: 300px;
+            max-width: 400px;
+            box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+            animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toast.success {
+            border-color: var(--yes-green);
+            box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .toast.error {
+            border-color: var(--no-red);
+            box-shadow: 0 4px 20px rgba(255, 68, 68, 0.3);
+        }
+
+        .toast.info {
+            border-color: var(--info-cyan);
+            box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);
+        }
+
+        .toast-icon {
+            font-size: 1.5em;
+            flex-shrink: 0;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+            color: var(--text-white);
+        }
+
+        .toast-message {
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        /* ==================== CONFETTI ==================== */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: var(--yes-green);
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .markets-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .time-display {
+                margin-left: 0;
+            }
+        }
+
+        /* ==================== PHASE 2: CHARTS ==================== */
+        .chart-section {
+            margin-top: 15px;
+            border-top: 1px solid var(--border);
+            padding-top: 15px;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .legend-item.yes { color: var(--yes-green); }
+        .legend-item.no { color: var(--no-red); }
+
+        .chart-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .chart-tab {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+
+        .chart-tab:hover {
+            border-color: var(--info-cyan);
+            color: var(--info-cyan);
+        }
+
+        .chart-tab.active {
+            background: #1a1a2e;
+            border-color: var(--info-cyan);
+            color: var(--info-cyan);
+        }
+
+        .chart-container {
+            height: 200px;
+            position: relative;
+        }
+
+        /* ==================== PHASE 2: PORTFOLIO MODAL ==================== */
+        .portfolio-btn {
+            background: var(--card-bg);
+            color: var(--info-cyan);
+            border: 2px solid var(--info-cyan);
+        }
+
+        .portfolio-btn:hover {
+            background: var(--info-cyan);
+            color: var(--bg-dark);
+            box-shadow: 0 0 15px var(--info-cyan);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-dark);
+            border: 2px solid var(--info-cyan);
+            border-radius: 20px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-bottom: 1px solid var(--info-cyan);
+        }
+
+        .modal-header h2 {
+            color: var(--info-cyan);
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--info-cyan);
+            font-size: 2em;
+            cursor: pointer;
+            line-height: 0.8;
+        }
+
+        .modal-close:hover {
+            color: var(--text-white);
+        }
+
+        .portfolio-summary {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .portfolio-stat {
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .portfolio-stat .stat-label {
+            font-size: 0.75em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .portfolio-stat .stat-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: var(--yes-green);
+        }
+
+        .portfolio-stat .stat-value.negative { 
+            color: var(--no-red); 
+        }
+
+        .portfolio-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: var(--card-bg);
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--text-muted);
+            padding: 15px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--info-cyan);
+        }
+
+        .tab-btn.active {
+            background: #1a1a1a;
+            color: var(--info-cyan);
+            border-bottom-color: var(--info-cyan);
+        }
+
+        .tab-content {
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .tab-content.hidden {
+            display: none;
+        }
+
+        .position-card {
+            background: #0d0d0d;
+            border: 1px solid var(--border);
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .position-card.yes-position {
+            border-left: 3px solid var(--yes-green);
+        }
+
+        .position-card.no-position {
+            border-left: 3px solid var(--no-red);
+        }
+
+        .position-info {
+            flex: 1;
+        }
+
+        .position-market {
+            font-size: 0.95em;
+            margin-bottom: 8px;
+            color: var(--text-white);
+        }
+
+        .position-details {
+            display: flex;
+            gap: 15px;
+            font-size: 0.85em;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+        }
+
+        .position-details .label {
+            color: var(--text-dim);
+        }
+
+        .position-details .yes {
+            color: var(--yes-green);
+            font-weight: bold;
+        }
+
+        .position-details .no {
+            color: var(--no-red);
+            font-weight: bold;
+        }
+
+        .position-value {
+            margin-top: 5px;
+            color: var(--info-cyan);
+            font-size: 0.9em;
+        }
+
+        .position-card .position-pnl {
+            text-align: right;
+        }
+
+        .pnl-value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .pnl-percent {
+            font-size: 0.85em;
+        }
+
+        .position-card .sell-btn {
+            padding: 8px 20px;
+            white-space: nowrap;
+        }
+
+        .history-card {
+            background: #0d0d0d;
+            border: 1px solid var(--border);
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-market {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            color: var(--text-white);
+        }
+
+        .trade-type {
+            font-size: 0.75em;
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+
+        .trade-type.buy { 
+            background: #1a3a1a; 
+            color: var(--yes-green); 
+        }
+
+        .trade-type.sell { 
+            background: #3a3a1a; 
+            color: #ffaa00; 
+        }
+
+        .trade-type.won { 
+            background: #1a3a1a; 
+            color: var(--yes-green); 
+        }
+
+        .trade-type.lost { 
+            background: #3a1a1a; 
+            color: var(--no-red); 
+        }
+
+        .history-details {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8em;
+            color: var(--text-muted);
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+
+        .history-details .yes {
+            color: var(--yes-green);
+            font-weight: bold;
+        }
+
+        .history-details .no {
+            color: var(--no-red);
+            font-weight: bold;
+        }
+
+        .history-time {
+            font-size: 0.75em;
+            color: var(--text-dim);
+            margin-top: 5px;
+        }
+
+        .history-pnl {
+            font-size: 1.1em;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        /* ==================== PHASE 2: ACTIVITY FEED ==================== */
+        .activity-feed {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 15px;
+            margin: 20px auto;
+            max-width: 1200px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .activity-feed h3 {
+            color: var(--info-cyan);
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .activity-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #222;
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-item .bot-name {
+            color: #ff00ff;
+            font-weight: bold;
+        }
+
+        .activity-item .user-trade {
+            color: var(--yes-green);
+            font-weight: bold;
+        }
+
+        .activity-item .yes { 
+            color: var(--yes-green); 
+            font-weight: bold;
+        }
+
+        .activity-item .no { 
+            color: var(--no-red); 
+            font-weight: bold;
+        }
+
+        .activity-item .amount { 
+            color: var(--info-cyan); 
+        }
+
+        /* ==================== PHASE 2: GROWTH INDICATORS ==================== */
+        .growth-indicator {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .growth-indicator.hot {
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--no-red);
+        }
+
+        .growth-indicator.warm {
+            background: rgba(255, 170, 0, 0.2);
+            color: #ffaa00;
+        }
+
+        .growth-indicator.cold {
+            background: rgba(68, 68, 255, 0.2);
+            color: #6666ff;
+        }
+
+        /* ==================== PHASE 3: FYP MODE ==================== */
+        .fyp-btn {
+            background: linear-gradient(135deg, #1a2e1a, #162e16);
+            border: 2px solid var(--yes-green);
+            color: var(--yes-green);
+        }
+
+        .fyp-btn:hover {
+            background: var(--yes-green);
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px var(--yes-green);
+        }
+
+        /* FYP Overlay */
+        .fyp-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 2000;
+            flex-direction: column;
+        }
+
+        .fyp-overlay.active {
+            display: flex;
+        }
+
+        /* FYP Header */
+        .fyp-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+            z-index: 10;
+        }
+
+        .fyp-logo {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 20px var(--yes-green);
+        }
+
+        .fyp-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .fyp-time-btn {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid var(--yes-green);
+            color: var(--yes-green);
+            padding: 8px 15px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+
+        .fyp-time-btn:hover {
+            background: var(--yes-green);
+            color: #000;
+        }
+
+        .fyp-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 8px 15px;
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+
+        .fyp-close:hover {
+            background: #fff;
+            color: #000;
+        }
+
+        /* FYP Container - Snap Scrolling */
+        .fyp-container {
+            flex: 1;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+        }
+
+        .fyp-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* FYP Card */
+        .fyp-card {
+            height: 100vh;
+            width: 100%;
+            scroll-snap-align: start;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* SVG Background */
+        .fyp-video-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+        }
+
+        .fyp-svg-bg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Trending Arrow */
+        .fyp-arrow {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12em;
+            opacity: 0.3;
+            z-index: 1;
+            text-shadow: 0 0 100px currentColor;
+        }
+
+        .fyp-arrow.up { color: var(--yes-green); }
+        .fyp-arrow.down { color: var(--no-red); }
+
+        /* Badges */
+        .fyp-time-left {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 15px;
+            border-radius: 20px;
+            color: #fff;
+            font-size: 0.9em;
+            z-index: 10;
+        }
+
+        .fyp-growth {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .fyp-growth.hot {
+            background: rgba(255, 68, 68, 0.3);
+            color: var(--no-red);
+            border: 1px solid var(--no-red);
+        }
+
+        .fyp-growth.warm {
+            background: rgba(255, 170, 0, 0.3);
+            color: #ffaa00;
+            border: 1px solid #ffaa00;
+        }
+
+        .fyp-growth.cold {
+            background: rgba(68, 68, 255, 0.3);
+            color: #4444ff;
+            border: 1px solid #4444ff;
+        }
+
+        /* Center Content */
+        .fyp-content {
+            position: relative;
+            z-index: 5;
+            text-align: center;
+            max-width: 500px;
+            padding: 0 60px;
+        }
+
+        .fyp-emoji {
+            font-size: 4em;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
+        }
+
+        .fyp-question {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+            line-height: 1.3;
+        }
+
+        .fyp-progress-info {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .fyp-current { 
+            color: var(--yes-green); 
+            font-weight: bold; 
+        }
+
+        .fyp-separator { 
+            color: #666; 
+            margin: 0 5px; 
+        }
+
+        .fyp-goal { 
+            color: #888; 
+        }
+
+        .fyp-progress-bar {
+            width: 80%;
+            max-width: 300px;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin: 0 auto 20px auto;
+            overflow: hidden;
+        }
+
+        .fyp-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--yes-green), var(--info-cyan));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .fyp-probability {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 0 0 30px currentColor;
+        }
+
+        .fyp-probability.high { color: var(--yes-green); }
+        .fyp-probability.medium { color: #ffaa00; }
+        .fyp-probability.low { color: var(--no-red); }
+
+        /* Right Side Stats (TikTok-style) */
+        .fyp-stats {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            z-index: 10;
+        }
+
+        .fyp-stat {
+            text-align: center;
+            color: #fff;
+        }
+
+        .fyp-stat-icon {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+        }
+
+        .fyp-stat-value {
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        /* Creator Info */
+        .fyp-creator {
+            position: absolute;
+            bottom: 180px;
+            left: 20px;
+            color: #fff;
+            font-size: 1em;
+            z-index: 10;
+        }
+
+        .fyp-category {
+            display: inline-block;
+            background: rgba(255, 0, 255, 0.3);
+            border: 1px solid #ff00ff;
+            padding: 3px 10px;
+            margin-left: 10px;
+            font-size: 0.85em;
+            color: #ff00ff;
+        }
+
+        /* Bottom Bet Section */
+        .fyp-bet-section {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.95));
+            z-index: 10;
+        }
+
+        .fyp-prices {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 15px;
+        }
+
+        .fyp-price {
+            text-align: center;
+        }
+
+        .fyp-price-label {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 3px;
+        }
+
+        .fyp-price-value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .fyp-price-value.yes { color: var(--yes-green); }
+        .fyp-price-value.no { color: var(--no-red); }
+
+        .fyp-bet-buttons {
+            display: flex;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .fyp-bet-btn {
+            flex: 1;
+            padding: 18px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s;
+        }
+
+        .fyp-bet-btn.yes {
+            background: #00cc44;
+            color: #fff;
+        }
+
+        .fyp-bet-btn.yes:hover { background: #00ff55; }
+
+        .fyp-bet-btn.no {
+            background: #cc3333;
+            color: #fff;
+        }
+
+        .fyp-bet-btn.no:hover { background: #ff4444; }
+
+        /* Navigation Buttons */
+        .fyp-nav {
+            position: fixed;
+            right: 20px;
+            bottom: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .fyp-nav-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+
+        .fyp-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Bet Modal */
+        .fyp-bet-modal {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #111;
+            border-top: 2px solid var(--yes-green);
+            padding: 25px;
+            z-index: 3000;
+        }
+
+        .fyp-bet-modal.active {
+            display: block;
+        }
+
+        .fyp-bet-modal h3 {
+            color: #fff;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .fyp-bet-input-row {
+            margin-bottom: 15px;
+        }
+
+        #fyp-bet-amount {
+            width: 100%;
+            background: #000;
+            border: 2px solid var(--yes-green);
+            color: var(--yes-green);
+            padding: 15px;
+            font-size: 1.2em;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+        }
+
+        .fyp-bet-preview {
+            text-align: center;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        .fyp-confirm-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+
+        .fyp-confirm-btn.yes { background: #00cc44; color: #fff; }
+        .fyp-confirm-btn.no { background: #cc3333; color: #fff; }
+
+        .fyp-cancel-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: transparent;
+            border: 1px solid #666;
+            color: #666;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+
+        .fyp-cancel-btn:hover {
+            border-color: #888;
+            color: #888;
+        }
+
+        /* ==================== PHONE VIEW (MOBILE MODE) ==================== */
+        .phone-btn {
+            background: linear-gradient(135deg, #1a2e1a, #162e16);
+            border: 2px solid var(--yes-green);
+            color: var(--yes-green);
+        }
+
+        .phone-btn:hover {
+            background: var(--yes-green);
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px var(--yes-green);
+        }
+
+        .phone-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .phone-overlay.active {
+            display: flex;
+        }
+
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 12px;
+            box-shadow: 0 0 60px rgba(0, 255, 0, 0.3);
+            border: 8px solid #1a1a1a;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background: #000;
+            border-radius: 0 0 20px 20px;
+            z-index: 3000;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            border-radius: 32px;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            position: relative;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        .phone-screen::-webkit-scrollbar {
+            display: none;
+        }
+
+        .phone-market-card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .phone-content-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .phone-header {
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 70%, transparent 100%);
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 35px 15px 10px 15px;
+        }
+
+        .phone-menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+
+        .phone-balance {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid var(--yes-green);
+            border-radius: 20px;
+            padding: 5px 15px;
+            color: var(--yes-green);
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .phone-close-btn {
+            background: rgba(255, 0, 0, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.4em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .phone-close-btn:hover {
+            background: rgba(255, 0, 0, 1);
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+        }
+
+        .phone-video-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .phone-video-bg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .phone-video-emoji {
+            font-size: 8em;
+            opacity: 0.7;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+            z-index: 1;
+        }
+
+        .phone-side-stats {
+            position: absolute;
+            right: 10px;
+            bottom: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .phone-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .phone-stat-icon {
+            font-size: 1.8em;
+        }
+
+        .phone-stat-value {
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .phone-bottom-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 15px 90px 15px;
+            background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+            z-index: 10;
+        }
+
+        .phone-creator {
+            color: white;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .phone-question {
+            color: white;
+            font-size: 0.95em;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .phone-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .phone-badge {
+            font-size: 0.75em;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+
+        .phone-trade-btn {
+            position: sticky;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            margin: 0 auto;
+            background: var(--yes-green);
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 40px;
+            font-weight: bold;
+            font-size: 1em;
+            cursor: pointer;
+            z-index: 11;
+            box-shadow: 0 4px 12px rgba(0, 255, 0, 0.4);
+            width: calc(100% - 40px);
+            max-width: 300px;
+            display: block;
+        }
+
+        .phone-trade-btn:active {
+            transform: translateX(-50%) scale(0.95);
+        }
+
+        .phone-bottom-sheet {
+            position: fixed;
+            bottom: -60%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 355px;
+            max-width: 355px;
+            height: 50%;
+            background: var(--card-bg);
+            border-radius: 24px 24px 0 0;
+            transition: bottom 0.3s ease;
+            z-index: 2500;
+            overflow-y: auto;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .phone-bottom-sheet.active {
+            bottom: 10px;
+        }
+
+        .sheet-handle {
+            width: 40px;
+            height: 4px;
+            background: var(--text-dim);
+            border-radius: 2px;
+            margin: 12px auto 8px;
+            cursor: pointer;
+        }
+
+        .sheet-close-btn {
+            background: rgba(255, 0, 0, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1.2em;
+            cursor: pointer;
+            font-weight: bold;
+            float: right;
+            margin: -8px 8px 8px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sheet-close-btn:hover {
+            background: rgba(255, 0, 0, 1);
+            transform: scale(1.1);
+        }
+
+        .sheet-content {
+            padding: 0 20px 20px 20px;
+        }
+
+        .sheet-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .sheet-tab {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 0.9em;
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+        }
+
+        .sheet-tab.active {
+            color: var(--yes-green);
+            border-bottom-color: var(--yes-green);
+        }
+
+        .sheet-chart-container {
+            height: 150px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .sheet-chart {
+            width: 100%;
+            height: 100%;
+        }
+
+        .sheet-odds {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .sheet-odd-card {
+            flex: 1;
+            background: #0d0d0d;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .sheet-odd-card.yes {
+            border-color: var(--yes-green);
+        }
+
+        .sheet-odd-card.no {
+            border-color: var(--no-red);
+        }
+
+        .sheet-trade-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sheet-input-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .sheet-input {
+            flex: 1;
+            background: #0d0d0d;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-white);
+            padding: 10px;
+            font-size: 0.9em;
+        }
+
+        .sheet-btn {
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+
+        .sheet-btn.buy-yes {
+            background: var(--yes-green);
+            color: var(--bg-dark);
+        }
+
+        .sheet-btn.buy-no {
+            background: var(--no-red);
+            color: white;
+        }
+
+        .phone-nav-arrows {
+            position: absolute;
+            right: 15px;
+            bottom: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 50;
+        }
+
+        .phone-nav-btn {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.2em;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        /* ==================== TUTORIAL POPUP ==================== */
+        .tutorial-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 5000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .tutorial-overlay.active {
+            display: flex;
+        }
+
+        .tutorial-popup {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid var(--yes-green);
+            border-radius: 24px;
+            max-width: 600px;
+            width: 90%;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 255, 0, 0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tutorial-popup h2 {
+            color: var(--yes-green);
+            font-size: 2em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .tutorial-popup .subtitle {
+            color: var(--info-cyan);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .tutorial-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .tutorial-step {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            background: var(--yes-green);
+            color: var(--bg-dark);
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            color: var(--text-white);
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+
+        .step-description {
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .tutorial-highlight {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid var(--yes-green);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .tutorial-highlight strong {
+            color: var(--yes-green);
+            font-size: 1.3em;
+        }
+
+        .tutorial-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .tutorial-btn {
+            background: var(--yes-green);
+            color: var(--bg-dark);
+            border: none;
+            border-radius: 25px;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tutorial-btn:hover {
+            background: #00ff55;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px var(--yes-green);
+        }
+
+        .tutorial-skip {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--text-dim);
+            border-radius: 25px;
+            padding: 15px 30px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        .tutorial-skip:hover {
+            color: var(--text-white);
+            border-color: var(--text-white);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>TrendX</h1>
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-label">💰 Balance:</span>
+                <span class="stat-value" id="balance">1,000 XC</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">📊 Positions:</span>
+                <span class="stat-value" id="positions-value">0 XC</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">💵 Total:</span>
+                <span class="stat-value" id="total-value">1,000 XC</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">P&L:</span>
+                <span class="stat-value" id="pnl">+0 XC</span>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="feedback-btn" onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLSfbaGhgcX530ySnxgcyCXV_Bk9VLDgZHr5Tk9Kyo5msG4PZMg/viewform?usp=sharing', '_blank')">
+                📝 Feedback & Waitlist
+            </button>
+            <button class="hamburger-btn" onclick="toggleMenu()">☰ Menu</button>
+            <div class="time-display">⏰ Hour: <span id="current-time">0</span></div>
+        </div>
+    </div>
+
+    <!-- Hamburger Menu -->
+    <div class="menu-overlay" id="menu-overlay" onclick="closeMenu()"></div>
+    <div class="menu-panel" id="menu-panel">
+        <div class="menu-header">
+            <h2>Menu</h2>
+            <button class="menu-close" onclick="closeMenu()">×</button>
+        </div>
+
+        <!-- Time Simulation Section -->
+        <div class="menu-section collapsible" id="simulation-section">
+            <div class="menu-section-title" onclick="toggleSection('simulation-section')">
+                ⏰ Time Simulation
+                <span class="menu-arrow">▼</span>
+            </div>
+            <div class="menu-buttons">
+                <button class="menu-btn" onclick="advanceTime(1); closeMenu();">+1 Hour</button>
+                <button class="menu-btn" onclick="advanceTime(6); closeMenu();">+6 Hours</button>
+                <button class="menu-btn" onclick="advanceTime(24); closeMenu();">+1 Day</button>
+                <button class="menu-btn" id="menu-auto-btn" onclick="toggleAuto(); updateMenuAutoBtn();">
+                    Auto Mode (1 hour every 1.5 seconds) <span class="auto-status" id="menu-auto-status">OFF</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Views Section -->
+        <div class="menu-section collapsible" id="views-section">
+            <div class="menu-section-title" onclick="toggleSection('views-section')">
+                👁️ Views
+                <span class="menu-arrow">▼</span>
+            </div>
+            <div class="menu-buttons">
+                <button class="menu-btn secondary" onclick="openPortfolioModal(); closeMenu();">💼 Portfolio</button>
+                <button class="menu-btn secondary" onclick="togglePhoneMode(); closeMenu();">📱 Phone View</button>
+            </div>
+        </div>
+
+        <!-- Markets Section -->
+        <div class="menu-section collapsible" id="markets-section">
+            <div class="menu-section-title" onclick="toggleSection('markets-section')">
+                📊 Markets
+                <span class="menu-arrow">▼</span>
+            </div>
+            <div class="menu-buttons">
+                <button class="menu-btn primary" onclick="generateNewMarkets(); closeMenu();">🔄 New Markets</button>
+                <button class="menu-btn danger" onclick="resetAll(); closeMenu();">⚠️ Reset All</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="activity-feed">
+        <h3>📢 Recent Activity</h3>
+        <div id="activity-list">
+            <div class="activity-item">Waiting for trades...</div>
+        </div>
+    </div>
+
+    <!-- Filter & Sort Controls -->
+    <div class="filter-controls">
+        <span class="filter-label">FILTER:</span>
+        <button class="filter-btn active" onclick="setFilter('all')">🎯 ALL</button>
+        <button class="filter-btn" onclick="setFilter('hot')">🔥 HOT</button>
+        <button class="filter-btn" onclick="setFilter('ending')">⏰ ENDING SOON</button>
+        <button class="filter-btn" onclick="setFilter('best-odds')">⚖️ BEST ODDS</button>
+        <button class="filter-btn" onclick="setFilter('my-positions')">📊 MY POSITIONS</button>
+        <span class="filter-label" style="margin-left: 10px;">SORT:</span>
+        <select class="sort-select" id="sort-select" onchange="setSort(this.value)">
+            <option value="default">Default</option>
+            <option value="deadline">Deadline (Ending Soon)</option>
+            <option value="progress">Progress (Hot)</option>
+            <option value="volume">Volume (Popular)</option>
+        </select>
+    </div>
+
+    <div class="markets-grid" id="markets-grid">
+        <!-- Market cards will be generated here -->
+    </div>
+
+    <!-- Portfolio Modal -->
+    <div class="modal-overlay" id="portfolio-modal" onclick="closePortfolioModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>💼 Your Portfolio</h2>
+                <button class="modal-close" onclick="closePortfolioModal()">×</button>
+            </div>
+            
+            <div class="portfolio-summary">
+                <div class="portfolio-stat">
+                    <div class="stat-label">Total Invested</div>
+                    <div class="stat-value" id="total-invested">0.00 XC</div>
+                </div>
+                <div class="portfolio-stat">
+                    <div class="stat-label">Current Value</div>
+                    <div class="stat-value" id="current-value-modal">0.00 XC</div>
+                </div>
+                <div class="portfolio-stat">
+                    <div class="stat-label">Unrealized P&L</div>
+                    <div class="stat-value" id="unrealized-pnl">+0.00 XC</div>
+                </div>
+                <div class="portfolio-stat">
+                    <div class="stat-label">Realized P&L</div>
+                    <div class="stat-value" id="realized-pnl-modal">+0.00 XC</div>
+                </div>
+            </div>
+            
+            <div class="portfolio-tabs">
+                <button class="tab-btn active" onclick="switchPortfolioTab('positions')">Open Positions</button>
+                <button class="tab-btn" onclick="switchPortfolioTab('history')">Trade History</button>
+            </div>
+            
+            <div class="tab-content" id="tab-positions">
+                <!-- Positions rendered here -->
+            </div>
+            
+            <div class="tab-content hidden" id="tab-history">
+                <!-- History rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- FYP Mode Overlay -->
+    <!-- Phone View -->
+    <div class="phone-overlay" id="phone-overlay">
+        <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="phone-screen" id="phone-screen">
+                <!-- Content will be dynamically rendered -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Popup -->
+    <div class="tutorial-overlay" id="tutorial-overlay">
+        <div class="tutorial-popup">
+            <h2>👋 Welcome to TrendX!</h2>
+            <p class="subtitle">Predict which viral videos will hit their targets</p>
+            
+            <div class="tutorial-steps">
+                <div class="tutorial-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Browse Markets</div>
+                        <div class="step-description">Each card shows a viral video prediction. Look for 🔥 HOT markets with high growth!</div>
+                    </div>
+                </div>
+                
+                <div class="tutorial-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Place Your Bet</div>
+                        <div class="step-description">Buy YES if you think it'll hit the target, NO if you think it won't. Enter an amount and click BUY.</div>
+                    </div>
+                </div>
+                
+                <div class="tutorial-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Advance Time</div>
+                        <div class="step-description">Use the ☰ Menu → Time Simulation to skip forward and see results. Try Auto Mode to watch it play out!</div>
+                    </div>
+                </div>
+                
+                <div class="tutorial-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <div class="step-title">Win or Lose</div>
+                        <div class="step-description">If you bet correctly, you get paid! Wrong bets lose. Track your profit in the header.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tutorial-highlight">
+                <strong>You start with 1,000 XC</strong><br>
+                <span style="color: var(--text-muted);">Make smart bets and grow your portfolio!</span>
+            </div>
+            
+            <div class="tutorial-actions">
+                <button class="tutorial-btn" onclick="closeTutorial()">Let's Go! 🚀</button>
+                <button class="tutorial-skip" onclick="closeTutorial()">Skip Tutorial</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CHUNK 1: FOUNDATION & DATA STRUCTURES ====================
+
+        // VIDEO CATEGORIES (18 types)
+        const VIDEO_TYPES = [
+            { emoji: '🐱', category: 'Pets', baseViralChance: 0.60 },
+            { emoji: '🎵', category: 'Music', baseViralChance: 0.55 },
+            { emoji: '💃', category: 'Dance', baseViralChance: 0.65 },
+            { emoji: '😂', category: 'Meme', baseViralChance: 0.70 },
+            { emoji: '🎮', category: 'Gaming', baseViralChance: 0.50 },
+            { emoji: '🍳', category: 'Food', baseViralChance: 0.45 },
+            { emoji: '⚽', category: 'Sports', baseViralChance: 0.50 },
+            { emoji: '🎬', category: 'Entertainment', baseViralChance: 0.55 },
+            { emoji: '🎨', category: 'Art', baseViralChance: 0.40 },
+            { emoji: '😆', category: 'Comedy', baseViralChance: 0.65 },
+            { emoji: '💄', category: 'Beauty', baseViralChance: 0.50 },
+            { emoji: '💪', category: 'Fitness', baseViralChance: 0.45 },
+            { emoji: '👨‍👩‍👧', category: 'Family', baseViralChance: 0.55 },
+            { emoji: '📚', category: 'Educational', baseViralChance: 0.35 },
+            { emoji: '👗', category: 'Fashion', baseViralChance: 0.50 },
+            { emoji: '🔨', category: 'DIY', baseViralChance: 0.40 },
+            { emoji: '✈️', category: 'Travel', baseViralChance: 0.45 },
+            { emoji: '📱', category: 'Tech', baseViralChance: 0.40 },
+            { emoji: '🎤', category: 'ASMR', baseViralChance: 0.48 },
+            { emoji: '🚗', category: 'Cars', baseViralChance: 0.52 },
+            { emoji: '🎃', category: 'Prank', baseViralChance: 0.68 },
+            { emoji: '🌱', category: 'Lifestyle', baseViralChance: 0.42 },
+            { emoji: '🔮', category: 'Paranormal', baseViralChance: 0.58 },
+            { emoji: '🎪', category: 'Viral Challenges', baseViralChance: 0.75 },
+            { emoji: '🐕', category: 'Animals', baseViralChance: 0.63 }
+        ];
+
+        // CREATOR NAMES POOL
+        const CREATOR_NAMES = [
+            'viralking', 'contentqueen', 'tiktoker123', 'fypmaster',
+            'trendchaser', 'clipgod', 'videoviral', 'watchthis',
+            'mustfollow', 'dailyclips', 'momentmaker', 'scrollstopper'
+        ];
+
+        // GROWTH PATTERNS (10 types)
+        const GROWTH_PATTERNS = {
+            // 1. Explosive - slow then BOOM
+            explosive: (hour, video) => {
+                const explosionHour = video.explosionHour || 12;
+                if (hour > explosionHour) {
+                    return 1 + video.viralPotential * 0.15 * Math.pow(1.1, hour - explosionHour);
+                }
+                return 1 + (Math.random() * 0.05);
+            },
+            
+            // 2. Steady - consistent growth
+            steady: (hour, video) => {
+                return 1 + video.viralPotential * 0.08 * (0.75 + Math.random() * 0.5);
+            },
+            
+            // 3. Slow Burn - takes time then catches on
+            slowBurn: (hour, video) => {
+                const catchOnHour = video.catchOnHour || 36;
+                if (hour < catchOnHour) return 1 + (Math.random() * 0.02);
+                return 1 + video.viralPotential * 0.12 * (0.75 + Math.random() * 0.5);
+            },
+            
+            // 4. Flash in the Pan - spikes then dies
+            flashPan: (hour, video) => {
+                const flashHour = video.flashHour || 4;
+                if (hour < flashHour) return 1 + video.viralPotential * 0.25;
+                return 1 + (Math.random() * 0.01);
+            },
+            
+            // 5. Multi-Wave - viral multiple times
+            multiWave: (hour, video) => {
+                const wave1 = video.wave1Hour || 6;
+                const wave2 = video.wave2Hour || 30;
+                const wave3 = video.wave3Hour || 54;
+                const isWave = (hour > wave1 && hour < wave1 + 8) ||
+                               (hour > wave2 && hour < wave2 + 8) ||
+                               (hour > wave3 && hour < wave3 + 8);
+                return isWave ? 1 + video.viralPotential * 0.18 : 1 + (Math.random() * 0.03);
+            },
+            
+            // 6. Dead on Arrival - never takes off
+            doa: (hour, video) => {
+                return 1 + (Math.random() * 0.015);
+            },
+            
+            // 7. Spike Plateau - grows then plateaus
+            spikePlateau: (hour, video) => {
+                const spikeHour = video.spikeHour || 8;
+                const plateauHour = video.plateauHour || 24;
+                if (hour < spikeHour) return 1 + (Math.random() * 0.03);
+                if (hour < plateauHour) return 1 + video.viralPotential * 0.2;
+                return 1 + (Math.random() * 0.02);
+            },
+            
+            // 8. Algorithm Boost - sudden platform push
+            algoBoost: (hour, video) => {
+                const boostHour = video.boostHour || 24;
+                if (hour > boostHour && hour < boostHour + 12) {
+                    return 1 + video.viralPotential * 0.3;
+                }
+                return 1 + (Math.random() * 0.04);
+            },
+            
+            // 9. Celebrity Repost - big account shares it
+            celebRepost: (hour, video) => {
+                const repostHour = video.repostHour || 18;
+                if (hour > repostHour && !video.celebBoosted) {
+                    video.celebBoosted = true;
+                    return 1 + video.viralPotential * 0.5;
+                }
+                if (video.celebBoosted) return 1 + video.viralPotential * 0.1;
+                return 1 + (Math.random() * 0.03);
+            },
+            
+            // 10. Controversial - erratic debate-driven
+            controversial: (hour, video) => {
+                const spike = Math.random() > 0.7;
+                return spike ? 1 + video.viralPotential * 0.15 : 1 + (Math.random() * 0.05);
+            }
+        };
+
+        // GLOBAL STATE
+        let currentTime = 0;
+        let autoInterval = null;
+        let markets = [];
+        let portfolio = {
+            balance: 1000,
+            initialBalance: 1000,
+            positions: [],
+            tradeHistory: [],
+            realizedPnL: 0
+        };
+
+        // ==================== PHASE 2: GLOBAL STATE ====================
+        let charts = {}; // Store Chart.js instances
+        let activeChartTabs = {}; // Track active tab for each market
+        let recentTrades = []; // For FOMO bot
+        let activityLog = []; // Activity feed
+
+        // ==================== PHASE 3: FYP MODE STATE ====================
+        let fypMode = false;
+        let currentFypIndex = 0;
+        let fypBetSide = null;
+        let fypBetMarketId = null;
+
+        // BOT TRADERS
+        const BOTS = [
+            { name: 'AlgoTrader_9000', strategy: 'momentum', aggression: 0.8, bankroll: 5000, description: 'Follows trends' },
+            { name: 'ValueHunter', strategy: 'contrarian', aggression: 0.4, bankroll: 3000, description: 'Bets against the crowd' },
+            { name: 'YOLO_King', strategy: 'random', aggression: 0.95, bankroll: 2000, description: 'Random aggressive' },
+            { name: 'SteadyEddie', strategy: 'conservative', aggression: 0.2, bankroll: 10000, description: 'Small safe bets' },
+            { name: 'TrendFollower', strategy: 'trend', aggression: 0.6, bankroll: 4000, description: 'Follows bet momentum' },
+            { name: 'WhaleWatch', strategy: 'whale', aggression: 0.3, bankroll: 50000, description: 'Rare huge bets' },
+            { name: 'DataDriven', strategy: 'analytical', aggression: 0.5, bankroll: 8000, description: 'Analyzes engagement' },
+            { name: 'FOMO_Bot', strategy: 'fomo', aggression: 0.7, bankroll: 1500, description: 'Copies others' },
+            { name: 'Sniper_X', strategy: 'sniper', aggression: 0.9, bankroll: 6000, description: 'Bets near deadline' },
+            { name: 'ChillTrader', strategy: 'passive', aggression: 0.15, bankroll: 12000, description: 'Occasional small bets' },
+            { name: 'ScalpMaster', strategy: 'scalper', aggression: 0.85, bankroll: 7000, description: 'Quick flip trades' },
+            { name: 'DegenApe', strategy: 'degen', aggression: 1.0, bankroll: 500, description: 'All-in gambler' },
+            { name: 'HedgeFund_AI', strategy: 'hedge', aggression: 0.35, bankroll: 25000, description: 'Bets both sides' },
+            { name: 'VibeCheck', strategy: 'sentiment', aggression: 0.65, bankroll: 3500, description: 'Bets on category vibes' },
+            { name: 'PaperHands', strategy: 'panic', aggression: 0.55, bankroll: 2500, description: 'Panic sells often' }
+        ];
+
+        // UTILITY FUNCTIONS
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        }
+
+        function formatXC(num) {
+            return num.toFixed(2) + ' XC';
+        }
+
+        // ==================== QUICK ACTIONS & FILTERS ====================
+        
+        function setQuickAmount(marketId, amount) {
+            const input = document.getElementById(`buy-amount-${marketId}`);
+            if (input) {
+                input.value = Math.min(amount, portfolio.balance);
+            }
+        }
+
+        let currentFilter = 'all';
+        let currentSort = 'default';
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            
+            // Update button styles
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            displayMarkets();
+        }
+
+        function setSort(sort) {
+            currentSort = sort;
+            
+            // Update button styles
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            displayMarkets();
+        }
+
+        function getFilteredMarkets() {
+            let filtered = [...markets];
+            
+            // Apply filter
+            switch(currentFilter) {
+                case 'hot':
+                    filtered = filtered.filter(m => {
+                        if (m.resolved) return false;
+                        const progress = (m.engagement[m.metric] / m.target) * 100;
+                        return progress > 70;
+                    });
+                    break;
+                case 'ending':
+                    filtered = filtered.filter(m => {
+                        if (m.resolved) return false;
+                        const hoursLeft = m.deadline - currentTime;
+                        return hoursLeft <= 12 && hoursLeft > 0;
+                    });
+                    break;
+                case 'best-odds':
+                    filtered = filtered.filter(m => {
+                        if (m.resolved) return false;
+                        const yesPrice = getYesPrice(m);
+                        return yesPrice >= 0.45 && yesPrice <= 0.55;
+                    });
+                    break;
+                case 'my-positions':
+                    filtered = filtered.filter(m => {
+                        return portfolio.positions.some(p => p.marketId === m.id);
+                    });
+                    break;
+                case 'all':
+                default:
+                    // No filter
+                    break;
+            }
+            
+            // Apply sort
+            switch(currentSort) {
+                case 'deadline':
+                    filtered.sort((a, b) => {
+                        if (a.resolved && !b.resolved) return 1;
+                        if (!a.resolved && b.resolved) return -1;
+                        return a.deadline - b.deadline;
+                    });
+                    break;
+                case 'progress':
+                    filtered.sort((a, b) => {
+                        if (a.resolved && !b.resolved) return 1;
+                        if (!a.resolved && b.resolved) return -1;
+                        const progressA = (a.engagement[a.metric] / a.target) * 100;
+                        const progressB = (b.engagement[b.metric] / b.target) * 100;
+                        return progressB - progressA;
+                    });
+                    break;
+                case 'volume':
+                    filtered.sort((a, b) => {
+                        const volumeA = a.yesPool + a.noPool;
+                        const volumeB = b.yesPool + b.noPool;
+                        return volumeB - volumeA;
+                    });
+                    break;
+                case 'default':
+                default:
+                    // Keep original order (by ID)
+                    filtered.sort((a, b) => a.id - b.id);
+                    break;
+            }
+            
+            return filtered;
+        }
+
+        // ==================== TOAST NOTIFICATIONS ====================
+        
+        function showToast(title, message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                info: 'ℹ️'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type]}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Remove after animation completes
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // ==================== CONFETTI ANIMATION ====================
+        
+        function triggerConfetti() {
+            const colors = ['#00ff00', '#00ffff', '#ffff00', '#ff00ff', '#ff6b6b', '#4ecdc4'];
+            const confettiCount = 50;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    
+                    // Random properties
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    const startX = Math.random() * window.innerWidth;
+                    const size = Math.random() * 10 + 5;
+                    const duration = Math.random() * 3 + 2;
+                    const delay = Math.random() * 0.5;
+                    
+                    confetti.style.left = startX + 'px';
+                    confetti.style.top = '-10px';
+                    confetti.style.width = size + 'px';
+                    confetti.style.height = size + 'px';
+                    confetti.style.background = color;
+                    confetti.style.animation = `confetti-fall ${duration}s linear ${delay}s forwards`;
+                    
+                    // Random rotation
+                    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    
+                    document.body.appendChild(confetti);
+                    
+                    // Remove after animation
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, (duration + delay) * 1000);
+                }, i * 30); // Stagger creation
+            }
+        }
+
+        // ==================== PHASE 2: CHART FUNCTIONS ====================
+
+        function switchChartTab(marketId, tab) {
+            activeChartTabs[marketId] = tab;
+            const market = markets.find(m => m.id === marketId);
+            if (market) {
+                createChart(market, tab);
+                
+                // Update tab button styles
+                const buttons = document.querySelectorAll(`#chart-tabs-${marketId} .chart-tab`);
+                buttons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.tab === tab) {
+                        btn.classList.add('active');
+                    }
+                });
+                
+                // Update legend
+                updateChartLegend(market, tab);
+            }
+        }
+
+        function createChart(market, type = 'contracts') {
+            const canvasId = `chart-${market.id}`;
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            
+            // Destroy existing chart
+            if (charts[market.id]) {
+                charts[market.id].destroy();
+            }
+            
+            let datasets, yAxisConfig;
+            
+            if (type === 'contracts') {
+                const noPrices = market.history.odds.map(o => 100 - o);
+                datasets = [
+                    {
+                        label: 'YES',
+                        data: market.history.odds,
+                        borderColor: '#00ff00',
+                        backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'NO',
+                        data: noPrices,
+                        borderColor: '#ff4444',
+                        backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0
+                    }
+                ];
+                yAxisConfig = {
+                    min: 0,
+                    max: 100,
+                    position: 'right',
+                    ticks: { 
+                        callback: v => v + '%',
+                        color: '#888'
+                    },
+                    grid: { color: '#222' }
+                };
+            } else {
+                // Views, Likes, or Shares
+                const colors = { 
+                    views: '#00ffff', 
+                    likes: '#ff69b4', 
+                    shares: '#ffa500' 
+                };
+                datasets = [{
+                    label: type.charAt(0).toUpperCase() + type.slice(1),
+                    data: market.history[type],
+                    borderColor: colors[type],
+                    backgroundColor: colors[type] + '33',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    borderWidth: 2
+                }];
+                yAxisConfig = {
+                    position: 'right',
+                    ticks: { 
+                        callback: v => formatNumber(v),
+                        color: '#888'
+                    },
+                    grid: { color: '#222' }
+                };
+            }
+            
+            charts[market.id] = new Chart(ctx, {
+                type: 'line',
+                data: { 
+                    labels: market.history.time, 
+                    datasets 
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 750,
+                        easing: 'easeInOutQuart'
+                    },
+                    plugins: {
+                        legend: { 
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#0a0a0a',
+                            borderColor: '#00ffff',
+                            borderWidth: 1,
+                            titleColor: '#00ffff',
+                            bodyColor: '#ffffff'
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { color: '#666' },
+                            grid: { display: false }
+                        },
+                        y: yAxisConfig
+                    }
+                }
+            });
+        }
+
+        function updateChartLegend(market, type) {
+            const legendEl = document.getElementById(`legend-${market.id}`);
+            if (!legendEl) return;
+            
+            if (type === 'contracts') {
+                const yesPercent = (getYesPrice(market) * 100).toFixed(0);
+                const noPercent = (100 - yesPercent).toFixed(0);
+                legendEl.innerHTML = `
+                    <span class="legend-item yes">● YES ${yesPercent}%</span>
+                    <span class="legend-item no">● NO ${noPercent}%</span>
+                `;
+            } else {
+                const value = market.engagement[type];
+                const emoji = type === 'views' ? '👁️' : type === 'likes' ? '❤️' : '🔄';
+                legendEl.innerHTML = `<span style="color: #00ffff">${emoji} ${type.charAt(0).toUpperCase() + type.slice(1)}: ${formatNumber(value)}</span>`;
+            }
+        }
+
+        // ==================== CHUNK 2: MARKET GENERATION ====================
+
+        function generateMarket(id) {
+            // Random video category
+            const videoType = VIDEO_TYPES[Math.floor(Math.random() * VIDEO_TYPES.length)];
+            
+            // Random creator
+            const creator = '@' + CREATOR_NAMES[Math.floor(Math.random() * CREATOR_NAMES.length)];
+            
+            // Random growth pattern
+            const patternNames = Object.keys(GROWTH_PATTERNS);
+            const patternName = patternNames[Math.floor(Math.random() * patternNames.length)];
+            
+            // Initial engagement (realistic)
+            const initialViews = Math.floor(Math.random() * 499000) + 1000; // 1K - 500K
+            const likeRatio = 0.03 + Math.random() * 0.09; // 3-12%
+            const shareRatio = 0.005 + Math.random() * 0.025; // 0.5-3%
+            const initialLikes = Math.floor(initialViews * likeRatio);
+            const initialShares = Math.floor(initialViews * shareRatio);
+            
+            // Video object
+            const video = {
+                type: videoType,
+                creator: creator,
+                viralPotential: videoType.baseViralChance,
+                pattern: patternName,
+                // Pattern-specific timing variables
+                explosionHour: 8 + Math.floor(Math.random() * 16),
+                catchOnHour: 24 + Math.floor(Math.random() * 24),
+                flashHour: 2 + Math.floor(Math.random() * 6),
+                wave1Hour: 4 + Math.floor(Math.random() * 8),
+                wave2Hour: 20 + Math.floor(Math.random() * 20),
+                wave3Hour: 48 + Math.floor(Math.random() * 24),
+                spikeHour: 6 + Math.floor(Math.random() * 10),
+                plateauHour: 18 + Math.floor(Math.random() * 18),
+                boostHour: 18 + Math.floor(Math.random() * 24),
+                repostHour: 12 + Math.floor(Math.random() * 24),
+                celebBoosted: false
+            };
+            
+            // Random metric to predict
+            const metrics = ['views', 'likes', 'shares'];
+            const metric = metrics[Math.floor(Math.random() * metrics.length)];
+            
+            // Get initial value for this metric
+            let initialValue;
+            switch(metric) {
+                case 'views': initialValue = initialViews; break;
+                case 'likes': initialValue = initialLikes; break;
+                case 'shares': initialValue = initialShares; break;
+            }
+            
+            // Target multiplier and deadline (varies by metric)
+            let targetMultiplier, deadline;
+            switch(metric) {
+                case 'views':
+                    targetMultiplier = 5 + Math.floor(Math.random() * 45); // 5-50x
+                    deadline = 24 + Math.floor(Math.random() * 96); // 24-120 hours
+                    break;
+                case 'likes':
+                    targetMultiplier = 3 + Math.floor(Math.random() * 17); // 3-20x
+                    deadline = 24 + Math.floor(Math.random() * 72); // 24-96 hours
+                    break;
+                case 'shares':
+                    targetMultiplier = 2 + Math.floor(Math.random() * 8); // 2-10x
+                    deadline = 24 + Math.floor(Math.random() * 48); // 24-72 hours
+                    break;
+            }
+            
+            // Calculate target (minimum 1000, rounded to nearest 1000)
+            const target = Math.max(1000, Math.round(initialValue * targetMultiplier / 1000) * 1000);
+            
+            // Market question
+            const question = `Will ${videoType.emoji} ${videoType.category} hit ${formatNumber(target)} ${metric}?`;
+            
+            // Initial betting pools (slightly randomized from 50/50)
+            const yesStart = 450 + Math.floor(Math.random() * 100);
+            const noStart = 1000 - yesStart;
+            
+            return {
+                id: id,
+                video: video,
+                question: question,
+                metric: metric,
+                target: target,
+                deadline: deadline,
+                yesPool: yesStart,
+                noPool: noStart,
+                resolved: false,
+                outcome: null,
+                engagement: {
+                    views: initialViews,
+                    likes: initialLikes,
+                    shares: initialShares
+                },
+                history: {
+                    time: [0],
+                    odds: [yesStart / 1000 * 100],
+                    views: [initialViews],
+                    likes: [initialLikes],
+                    shares: [initialShares]
+                }
+            };
+        }
+
+        function generateNewMarkets() {
+            // Clear existing markets
+            markets = [];
+            
+            // Generate 20 new markets
+            for (let i = 1; i <= 20; i++) {
+                markets.push(generateMarket(i));
+            }
+            
+            // Reset time
+            currentTime = 0;
+            document.getElementById('current-time').textContent = currentTime;
+            
+            // Stop auto if running
+            if (autoInterval) {
+                clearInterval(autoInterval);
+                autoInterval = null;
+                document.getElementById('auto-btn').textContent = 'Auto: OFF';
+            }
+            
+            // Display markets
+            displayMarkets();
+            updatePortfolioDisplay();
+            
+            // Update phone view if active
+            if (phoneMode) {
+                renderPhone();
+            }
+            
+            // Show toast notification
+            showToast(
+                '🔄 New Markets Generated!',
+                '20 fresh viral video predictions are ready to trade',
+                'info'
+            );
+            
+            console.log('Generated 20 new markets!', markets);
+        }
+
+        // ==================== CHUNK 4: ENGAGEMENT & TIME SIMULATION ====================
+
+        function updateEngagement(market) {
+            // Get growth pattern function
+            const pattern = GROWTH_PATTERNS[market.video.pattern];
+            const multiplier = pattern(currentTime, market.video);
+            
+            // Maximum caps
+            const MAX_VIEWS = 50000000;  // 50M
+            const MAX_LIKES = 5000000;   // 5M
+            const MAX_SHARES = 1000000;  // 1M
+            
+            // Views (always increase, capped)
+            const viewGrowth = Math.max(1, multiplier * (0.95 + Math.random() * 0.1));
+            market.engagement.views = Math.min(MAX_VIEWS, 
+                Math.max(market.engagement.views, Math.floor(market.engagement.views * viewGrowth))
+            );
+            
+            // Likes (3-10% of views, always increase)
+            const minLikes = Math.floor(market.engagement.views * 0.03);
+            market.engagement.likes = Math.min(MAX_LIKES,
+                Math.max(market.engagement.likes, Math.floor(market.engagement.likes * viewGrowth * 0.95), minLikes)
+            );
+            
+            // Shares (0.5-3% of views, always increase)
+            const minShares = Math.floor(market.engagement.views * 0.005);
+            market.engagement.shares = Math.min(MAX_SHARES,
+                Math.max(market.engagement.shares, Math.floor(market.engagement.shares * viewGrowth * 0.9), minShares)
+            );
+        }
+
+        function advanceTime(hours) {
+            for (let i = 0; i < hours; i++) {
+                currentTime++;
+                
+                markets.forEach(market => {
+                    if (!market.resolved) {
+                        // Update engagement
+                        updateEngagement(market);
+                        
+                        // PHASE 2: Bot trading
+                        botTrade(market);
+                        
+                        // Record history for charts (Phase 2)
+                        market.history.time.push(currentTime);
+                        market.history.odds.push(getYesPrice(market) * 100);
+                        market.history.views.push(market.engagement.views);
+                        market.history.likes.push(market.engagement.likes);
+                        market.history.shares.push(market.engagement.shares);
+                        
+                        // Check if market should resolve
+                        if (currentTime >= market.deadline) {
+                            resolveMarket(market);
+                        }
+                    }
+                });
+            }
+            
+            // Update time display
+            document.getElementById('current-time').textContent = currentTime;
+            
+            // Refresh UI
+            displayMarkets();
+            updatePortfolioDisplay();
+            
+            // PHASE 3: Refresh phone view if active
+            if (phoneMode) {
+                renderPhone();
+                // If bottom sheet is open, update it too
+                if (phoneSheetOpen && currentPhoneMarket) {
+                    const market = markets.find(m => m.id === currentPhoneMarket);
+                    if (market) {
+                        renderPhoneSheet(market);
+                    }
+                }
+            }
+            
+            // Save to localStorage
+            savePortfolio();
+        }
+
+        function toggleAuto() {
+            const btn = document.getElementById('auto-btn');
+            
+            if (autoInterval) {
+                // Stop auto
+                clearInterval(autoInterval);
+                autoInterval = null;
+                if (btn) {
+                    btn.textContent = 'Auto: OFF';
+                    btn.style.background = 'var(--card-bg)';
+                    btn.style.color = 'var(--yes-green)';
+                }
+            } else {
+                // Start auto (advance 1 hour every 1.5 seconds)
+                autoInterval = setInterval(() => {
+                    advanceTime(1);
+                }, 1500);
+                if (btn) {
+                    btn.textContent = 'Auto: ON';
+                    btn.style.background = 'var(--yes-green)';
+                    btn.style.color = 'var(--bg-dark)';
+                }
+            }
+            
+            // Update menu button status
+            updateMenuAutoBtn();
+        }
+
+        function resolveMarket(market) {
+            // Check if target was reached
+            const reached = market.engagement[market.metric] >= market.target;
+            market.resolved = true;
+            market.outcome = reached ? 'yes' : 'no';
+            
+            // Process all positions for this market
+            const marketPositions = portfolio.positions.filter(p => p.marketId === market.id);
+            
+            let userWon = false;
+            let totalUserPayout = 0;
+            let totalUserPnL = 0;
+            
+            marketPositions.forEach(pos => {
+                const won = pos.side === market.outcome;
+                const payout = won ? pos.contracts : 0;
+                const pnl = payout - pos.totalCost;
+                
+                if (won) {
+                    userWon = true;
+                    totalUserPayout += payout;
+                    totalUserPnL += pnl;
+                }
+                
+                // Add payout to balance
+                portfolio.balance += payout;
+                portfolio.realizedPnL += pnl;
+                
+                // Record in trade history
+                portfolio.tradeHistory.unshift({
+                    type: won ? 'won' : 'lost',
+                    marketId: market.id,
+                    side: pos.side,
+                    contracts: pos.contracts,
+                    payout: payout,
+                    pnl: pnl,
+                    timestamp: currentTime
+                });
+            });
+            
+            // Show celebration for user wins
+            if (marketPositions.length > 0) {
+                if (userWon) {
+                    triggerConfetti();
+                    showToast(
+                        '🎉 Market Resolved - YOU WON!',
+                        `${market.video.type.emoji} ${market.video.creator}'s video ${reached ? 'HIT' : 'MISSED'} target! +${formatXC(totalUserPnL)}`,
+                        'success'
+                    );
+                } else {
+                    showToast(
+                        'Market Resolved',
+                        `${market.video.type.emoji} ${market.video.creator}'s video ${reached ? 'HIT' : 'MISSED'} target. Better luck next time!`,
+                        'error'
+                    );
+                }
+            }
+            
+            // Remove positions from this market
+            portfolio.positions = portfolio.positions.filter(p => p.marketId !== market.id);
+            
+            console.log(`Market ${market.id} resolved: ${market.outcome.toUpperCase()} (${reached ? 'Target reached' : 'Target missed'})`);
+        }
+
+        // ==================== PHASE 2: BOT TRADERS ====================
+
+        function botTrade(market) {
+            if (market.resolved) return;
+            
+            BOTS.forEach(bot => {
+                // Check if bot will trade (based on aggression)
+                if (Math.random() > bot.aggression * 0.3) return;
+                
+                let side = null;
+                let amount = 0;
+                
+                const yesPrice = getYesPrice(market);
+                const progress = market.engagement[market.metric] / market.target;
+                const timeLeft = market.deadline - currentTime;
+                
+                switch(bot.strategy) {
+                    case 'momentum':
+                        // Buy whichever side has been increasing
+                        if (market.history.odds.length > 2) {
+                            const recent = market.history.odds.slice(-3);
+                            const trend = recent[2] - recent[0];
+                            side = trend > 0 ? 'yes' : 'no';
+                        }
+                        amount = bot.bankroll * 0.02 * Math.random();
+                        break;
+                        
+                    case 'contrarian':
+                        // Bet against the majority
+                        side = yesPrice > 0.6 ? 'no' : yesPrice < 0.4 ? 'yes' : null;
+                        amount = bot.bankroll * 0.03 * Math.random();
+                        break;
+                        
+                    case 'random':
+                        side = Math.random() > 0.5 ? 'yes' : 'no';
+                        amount = bot.bankroll * 0.05 * Math.random();
+                        break;
+                        
+                    case 'conservative':
+                        // Only bet on high probability
+                        if (yesPrice > 0.75) side = 'yes';
+                        else if (yesPrice < 0.25) side = 'no';
+                        amount = bot.bankroll * 0.01 * Math.random();
+                        break;
+                        
+                    case 'trend':
+                        // Follow recent pool changes
+                        side = market.yesPool > market.noPool ? 'yes' : 'no';
+                        amount = bot.bankroll * 0.02 * Math.random();
+                        break;
+                        
+                    case 'whale':
+                        // Rare but massive
+                        if (Math.random() > 0.9) {
+                            side = Math.random() > 0.5 ? 'yes' : 'no';
+                            amount = bot.bankroll * 0.1 * Math.random();
+                        }
+                        break;
+                        
+                    case 'analytical':
+                        // Based on engagement progress
+                        if (progress > 0.8 && timeLeft > 12) side = 'yes';
+                        else if (progress < 0.3 && timeLeft < 24) side = 'no';
+                        amount = bot.bankroll * 0.025 * Math.random();
+                        break;
+                        
+                    case 'fomo':
+                        // Copy last trade
+                        if (recentTrades.length > 0) {
+                            const lastTrade = recentTrades[0];
+                            if (lastTrade.marketId === market.id) {
+                                side = lastTrade.side;
+                            }
+                        }
+                        amount = bot.bankroll * 0.02 * Math.random();
+                        break;
+                        
+                    case 'sniper':
+                        // Only near deadline
+                        if (timeLeft < 6) {
+                            side = progress > 0.9 ? 'yes' : 'no';
+                            amount = bot.bankroll * 0.04 * Math.random();
+                        }
+                        break;
+                        
+                    case 'passive':
+                        if (Math.random() > 0.8) {
+                            side = Math.random() > 0.5 ? 'yes' : 'no';
+                            amount = bot.bankroll * 0.005 * Math.random();
+                        }
+                        break;
+                        
+                    case 'scalper':
+                        // Quick flip trades - bet opposite of current majority
+                        if (yesPrice > 0.55) side = 'no';
+                        else if (yesPrice < 0.45) side = 'yes';
+                        amount = bot.bankroll * 0.03 * Math.random();
+                        break;
+                        
+                    case 'degen':
+                        // All-in gambler - huge bets on extreme odds
+                        if (Math.random() > 0.7) {
+                            side = Math.random() > 0.5 ? 'yes' : 'no';
+                            amount = bot.bankroll * 0.5 * Math.random(); // Huge bets
+                        }
+                        break;
+                        
+                    case 'hedge':
+                        // Bet both sides - sometimes bets opposite of current position
+                        side = Math.random() > 0.5 ? 'yes' : 'no';
+                        amount = bot.bankroll * 0.015 * Math.random();
+                        break;
+                        
+                    case 'sentiment':
+                        // Bets based on category viral chance
+                        const viralChance = market.video.type.baseViralChance || 0.5;
+                        if (viralChance > 0.6 && progress > 0.4) side = 'yes';
+                        else if (viralChance < 0.4) side = 'no';
+                        amount = bot.bankroll * 0.025 * Math.random();
+                        break;
+                        
+                    case 'panic':
+                        // Panic sells - switches sides often
+                        if (Math.random() > 0.5) {
+                            // Sometimes bets against recent momentum
+                            if (market.history.odds.length > 2) {
+                                const recent = market.history.odds.slice(-3);
+                                const trend = recent[2] - recent[0];
+                                side = trend > 0 ? 'no' : 'yes'; // Opposite of momentum
+                            }
+                        } else {
+                            side = Math.random() > 0.5 ? 'yes' : 'no';
+                        }
+                        amount = bot.bankroll * 0.02 * Math.random();
+                        break;
+                }
+                
+                // Execute trade
+                if (side && amount > 10) {
+                    amount = Math.floor(amount);
+                    
+                    // Add to pool
+                    if (side === 'yes') market.yesPool += amount;
+                    else market.noPool += amount;
+                    
+                    // Record trade
+                    const trade = {
+                        bot: bot.name,
+                        marketId: market.id,
+                        side,
+                        amount,
+                        timestamp: currentTime
+                    };
+                    
+                    recentTrades.unshift(trade);
+                    if (recentTrades.length > 20) recentTrades.pop();
+                    
+                    // Update recent activity feed
+                    updateActivityFeed(trade);
+                }
+            });
+        }
+
+        // ==================== PHASE 2: ACTIVITY FEED ====================
+
+        function updateActivityFeed(trade = null) {
+            if (trade) {
+                const market = markets.find(m => m.id === trade.marketId);
+                const emoji = market ? market.video.type.emoji : '📊';
+                
+                activityLog.unshift({
+                    text: trade.bot 
+                        ? `<span class="bot-name">${trade.bot}</span> bought <span class="${trade.side}">${trade.side.toUpperCase()}</span> on ${emoji} ${market?.video.type.category || 'Market'} (<span class="amount">${trade.amount} XC</span>)`
+                        : `<span class="user-trade">You</span> bought <span class="${trade.side}">${trade.side.toUpperCase()}</span> on ${emoji} ${market?.video.type.category || 'Market'} (<span class="amount">${trade.amount} XC</span>)`,
+                    timestamp: currentTime
+                });
+                
+                if (activityLog.length > 50) activityLog.pop();
+            }
+            
+            const list = document.getElementById('activity-list');
+            if (list) {
+                if (activityLog.length === 0) {
+                    list.innerHTML = '<div class="activity-item">Waiting for trades...</div>';
+                } else {
+                    list.innerHTML = activityLog.slice(0, 15).map(a => 
+                        `<div class="activity-item">${a.text}</div>`
+                    ).join('');
+                }
+            }
+        }
+
+        // ==================== CHUNK 5: TRADING MECHANICS (BUYING) ====================
+
+        function buyContracts(marketId, side, amountParam) {
+            const market = markets.find(m => m.id === marketId);
+            if (!market) {
+                alert('Market not found!');
+                return;
+            }
+            
+            if (market.resolved) {
+                alert('This market has already resolved!');
+                return;
+            }
+            
+            // Get amount from parameter or input
+            let amount;
+            if (amountParam !== undefined) {
+                amount = amountParam;
+            } else {
+                const input = document.getElementById(`buy-amount-${marketId}`);
+                amount = parseFloat(input.value);
+            }
+            
+            // Validate amount
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount!');
+                return;
+            }
+            
+            if (amount > portfolio.balance) {
+                alert(`Insufficient balance! You have ${formatXC(portfolio.balance)}`);
+                return;
+            }
+            
+            // Get current price
+            const price = side === 'yes' ? getYesPrice(market) : getNoPrice(market);
+            const contracts = amount / price;
+            
+            // Update betting pools (affects price for everyone)
+            if (side === 'yes') {
+                market.yesPool += amount;
+            } else {
+                market.noPool += amount;
+            }
+            
+            // Deduct from balance
+            portfolio.balance -= amount;
+            
+            // Add or update position
+            const existingPos = portfolio.positions.find(p => p.marketId === marketId && p.side === side);
+            
+            if (existingPos) {
+                // Average into existing position
+                const totalContracts = existingPos.contracts + contracts;
+                const totalCost = existingPos.totalCost + amount;
+                existingPos.contracts = totalContracts;
+                existingPos.totalCost = totalCost;
+                existingPos.avgPrice = totalCost / totalContracts;
+            } else {
+                // Create new position
+                portfolio.positions.push({
+                    marketId: marketId,
+                    side: side,
+                    contracts: contracts,
+                    avgPrice: price,
+                    totalCost: amount
+                });
+            }
+            
+            // Record trade in history
+            portfolio.tradeHistory.unshift({
+                type: 'buy',
+                marketId: marketId,
+                side: side,
+                contracts: contracts,
+                price: price,
+                total: amount,
+                timestamp: currentTime
+            });
+            
+            // Clear input if it exists
+            if (amountParam === undefined) {
+                const input = document.getElementById(`buy-amount-${marketId}`);
+                if (input) input.value = '';
+            }
+            
+            // PHASE 2: Add to activity feed
+            updateActivityFeed({
+                bot: null, // null = user
+                marketId: marketId,
+                side: side,
+                amount: amount,
+                timestamp: currentTime
+            });
+            
+            // Update UI
+            displayMarkets();
+            updatePortfolioDisplay();
+            savePortfolio();
+            
+            // Show success toast
+            const sideColor = side === 'yes' ? 'YES' : 'NO';
+            showToast(
+                'Trade Executed!',
+                `Bought ${contracts.toFixed(0)} ${sideColor} contracts for ${formatXC(amount)}`,
+                'success'
+            );
+            
+            console.log(`Bought ${contracts.toFixed(2)} ${side.toUpperCase()} contracts @ ${price.toFixed(2)} XC = ${formatXC(amount)}`);
+        }
+
+        // ==================== CHUNK 6: SELLING & RESOLUTION ====================
+
+        function sellContracts(marketId, side, contractsToSell) {
+            const market = markets.find(m => m.id === marketId);
+            if (!market) {
+                alert('Market not found!');
+                return;
+            }
+            
+            if (market.resolved) {
+                alert('This market has already resolved!');
+                return;
+            }
+            
+            // Find position
+            const position = portfolio.positions.find(p => p.marketId === marketId && p.side === side);
+            if (!position) {
+                alert('You do not have a position to sell!');
+                return;
+            }
+            
+            // Validate amount
+            if (!contractsToSell || contractsToSell <= 0) {
+                alert('Please enter a valid amount to sell!');
+                return;
+            }
+            
+            if (contractsToSell > position.contracts) {
+                alert(`You only have ${position.contracts.toFixed(2)} contracts to sell!`);
+                return;
+            }
+            
+            // Get current price
+            const currentPrice = side === 'yes' ? getYesPrice(market) : getNoPrice(market);
+            const saleValue = contractsToSell * currentPrice;
+            const costBasis = contractsToSell * position.avgPrice;
+            const pnl = saleValue - costBasis;
+            
+            // Remove from pools (with slight haircut to prevent gaming)
+            if (side === 'yes') {
+                market.yesPool = Math.max(100, market.yesPool - saleValue * 0.95);
+            } else {
+                market.noPool = Math.max(100, market.noPool - saleValue * 0.95);
+            }
+            
+            // Add proceeds to balance
+            portfolio.balance += saleValue;
+            portfolio.realizedPnL += pnl;
+            
+            // Update position
+            position.contracts -= contractsToSell;
+            position.totalCost -= costBasis;
+            
+            // Remove position if fully sold
+            if (position.contracts < 0.001) {
+                portfolio.positions = portfolio.positions.filter(p => 
+                    !(p.marketId === marketId && p.side === side)
+                );
+            }
+            
+            // Record trade in history
+            portfolio.tradeHistory.unshift({
+                type: 'sell',
+                marketId: marketId,
+                side: side,
+                contracts: contractsToSell,
+                price: currentPrice,
+                total: saleValue,
+                pnl: pnl,
+                timestamp: currentTime
+            });
+            
+            // Update UI
+            displayMarkets();
+            updatePortfolioDisplay();
+            savePortfolio();
+            
+            // Show success toast with P&L
+            const sideColor = side === 'yes' ? 'YES' : 'NO';
+            const pnlText = pnl >= 0 ? `+${formatXC(pnl)}` : formatXC(pnl);
+            const pnlEmoji = pnl >= 0 ? '📈' : '📉';
+            showToast(
+                'Position Sold!',
+                `Sold ${contractsToSell.toFixed(0)} ${sideColor} for ${formatXC(saleValue)} ${pnlEmoji} ${pnlText}`,
+                pnl >= 0 ? 'success' : 'error'
+            );
+            
+            console.log(`Sold ${contractsToSell.toFixed(2)} ${side.toUpperCase()} contracts @ ${currentPrice.toFixed(2)} XC = ${formatXC(saleValue)} (P&L: ${pnl >= 0 ? '+' : ''}${formatXC(pnl)})`);
+        }
+
+        // ==================== PHASE 2: PORTFOLIO MODAL ====================
+
+        function openPortfolioModal() {
+            const modal = document.getElementById('portfolio-modal');
+            modal.classList.add('active');
+            renderPortfolioModal();
+        }
+
+        function closePortfolioModal(event) {
+            if (!event || event.target.id === 'portfolio-modal') {
+                const modal = document.getElementById('portfolio-modal');
+                modal.classList.remove('active');
+            }
+        }
+
+        function switchPortfolioTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Show/hide tab content
+            document.getElementById('tab-positions').classList.toggle('hidden', tab !== 'positions');
+            document.getElementById('tab-history').classList.toggle('hidden', tab !== 'history');
+            
+            // Re-render content
+            renderPortfolioModal();
+        }
+
+        function renderPortfolioModal() {
+            // Calculate portfolio stats
+            let totalInvested = 0;
+            let currentValue = portfolio.balance;
+            let unrealizedPnL = 0;
+            
+            portfolio.positions.forEach(pos => {
+                totalInvested += pos.totalCost;
+                const market = markets.find(m => m.id === pos.marketId);
+                if (market) {
+                    const posValue = getPositionValue(pos, market);
+                    currentValue += posValue.currentValue;
+                    unrealizedPnL += posValue.pnl;
+                }
+            });
+            
+            // Update summary stats
+            document.getElementById('total-invested').textContent = formatXC(totalInvested);
+            document.getElementById('current-value-modal').textContent = formatXC(currentValue);
+            
+            const unrealizedEl = document.getElementById('unrealized-pnl');
+            unrealizedEl.textContent = (unrealizedPnL >= 0 ? '+' : '') + formatXC(unrealizedPnL);
+            unrealizedEl.classList.toggle('negative', unrealizedPnL < 0);
+            
+            const realizedEl = document.getElementById('realized-pnl-modal');
+            realizedEl.textContent = (portfolio.realizedPnL >= 0 ? '+' : '') + formatXC(portfolio.realizedPnL);
+            realizedEl.classList.toggle('negative', portfolio.realizedPnL < 0);
+            
+            // Render positions tab
+            renderPositionsTab();
+            
+            // Render history tab
+            renderHistoryTab();
+        }
+
+        function renderPositionsTab() {
+            const container = document.getElementById('tab-positions');
+            
+            if (portfolio.positions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <div>No open positions</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            portfolio.positions.forEach(pos => {
+                const market = markets.find(m => m.id === pos.marketId);
+                if (!market) return;
+                
+                const posValue = getPositionValue(pos, market);
+                const pnlClass = posValue.pnl >= 0 ? 'positive' : 'negative';
+                
+                html += `
+                    <div class="position-card ${pos.side}-position">
+                        <div class="position-info">
+                            <div class="position-market">${market.question}</div>
+                            <div class="position-details">
+                                <span class="detail"><span class="label">Side:</span> <span class="${pos.side}">${pos.side.toUpperCase()}</span></span>
+                                <span class="detail"><span class="label">Contracts:</span> ${pos.contracts.toFixed(2)}</span>
+                                <span class="detail"><span class="label">Avg:</span> ${pos.avgPrice.toFixed(2)} XC</span>
+                                <span class="detail"><span class="label">Now:</span> ${posValue.currentPrice.toFixed(2)} XC</span>
+                            </div>
+                            <div class="position-value">Value: ${posValue.currentValue.toFixed(2)} XC</div>
+                        </div>
+                        <div class="position-pnl ${pnlClass}">
+                            <div class="pnl-value">${posValue.pnl >= 0 ? '+' : ''}${posValue.pnl.toFixed(2)} XC</div>
+                            <div class="pnl-percent">${posValue.pnlPercent >= 0 ? '+' : ''}${posValue.pnlPercent.toFixed(1)}%</div>
+                        </div>
+                        ${!market.resolved ? `<button class="sell-btn" onclick="sellAllFromModal(${market.id}, '${pos.side}')">SELL ALL</button>` : ''}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function renderHistoryTab() {
+            const container = document.getElementById('tab-history');
+            
+            if (portfolio.tradeHistory.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📜</div>
+                        <div>No trade history</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            portfolio.tradeHistory.forEach(trade => {
+                const market = markets.find(m => m.id === trade.marketId);
+                const marketQuestion = market ? market.question : 'Unknown Market';
+                
+                let typeLabel = trade.type.toUpperCase();
+                let typeClass = trade.type;
+                let pnl = trade.pnl !== undefined ? trade.pnl : 0;
+                let pnlClass = pnl >= 0 ? 'positive' : 'negative';
+                
+                html += `
+                    <div class="history-card">
+                        <div class="history-info">
+                            <div class="history-market">
+                                ${marketQuestion}
+                                <span class="trade-type ${typeClass}">${typeLabel}</span>
+                            </div>
+                            <div class="history-details">
+                                <span>Side: <span class="${trade.side}">${trade.side.toUpperCase()}</span></span>
+                                <span>Contracts: ${trade.contracts.toFixed(2)}</span>
+                                <span>Price: ${trade.price.toFixed(2)} XC</span>
+                                <span>Total: ${trade.total.toFixed(2)} XC</span>
+                            </div>
+                            <div class="history-time">Hour ${trade.timestamp}</div>
+                        </div>
+                        <div class="history-pnl ${pnlClass}">
+                            ${pnl !== 0 ? (pnl >= 0 ? '+' : '') + pnl.toFixed(2) + ' XC' : '-'}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function sellAllFromModal(marketId, side) {
+            const position = portfolio.positions.find(p => p.marketId === marketId && p.side === side);
+            if (position) {
+                sellContracts(marketId, side, position.contracts);
+                renderPortfolioModal();
+            }
+        }
+
+        // ==================== PHASE 3: FYP MODE FUNCTIONS ====================
+
+        // ==================== PHONE VIEW FUNCTIONS ====================
+        
+        let phoneMode = false;
+        let currentPhoneIndex = 0;
+        let phoneSheetOpen = false;
+        let currentPhoneTab = 'contracts';
+        let currentPhoneMarket = null;
+
+        function togglePhoneMode() {
+            console.log('togglePhoneMode called, phoneMode:', phoneMode);
+            phoneMode = !phoneMode;
+            const overlay = document.getElementById('phone-overlay');
+            console.log('overlay element:', overlay);
+            
+            if (phoneMode) {
+                overlay.classList.add('active');
+                currentPhoneIndex = 0;
+                console.log('About to call renderPhone');
+                renderPhone();
+            } else {
+                overlay.classList.remove('active');
+                phoneSheetOpen = false;
+            }
+        }
+
+        function renderPhone() {
+            console.log('renderPhone called');
+            const activeMarkets = markets.filter(m => !m.resolved);
+            console.log('activeMarkets:', activeMarkets.length);
+            if (activeMarkets.length === 0) return;
+            
+            const screen = document.getElementById('phone-screen');
+            console.log('screen element:', screen);
+            
+            // Build all market cards
+            let allCardsHTML = '';
+            
+            activeMarkets.forEach((market, index) => {
+                const yesPrice = getYesPrice(market);
+                const progress = (market.engagement[market.metric] / market.target) * 100;
+                
+                // Get badges
+                let badges = [];
+                if (progress > 70) badges.push({ text: '🔥 HOT', class: 'hot' });
+                else if (progress > 40) badges.push({ text: '📈 WARM', class: 'warm' });
+                else badges.push({ text: '❄️ COLD', class: 'cold' });
+                
+                const hoursLeft = market.deadline - currentTime;
+                if (hoursLeft <= 12 && hoursLeft > 0) {
+                    badges.push({ text: '⏰ ENDING SOON', class: 'ending-soon' });
+                }
+                
+                // Get gradient
+                const categoryGradients = {
+                    'Pets': 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)',
+                    'Music': 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+                    'Dance': 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+                    'Meme': 'linear-gradient(135deg, #fff1eb 0%, #ace0f9 100%)',
+                    'Gaming': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    'Food': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    'Sports': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    'Entertainment': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                    'Art': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                    'Comedy': 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+                    'Beauty': 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+                    'Fitness': 'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)',
+                    'Family': 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+                    'Educational': 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)',
+                    'Fashion': 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+                    'DIY': 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)',
+                    'Travel': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    'Tech': 'linear-gradient(135deg, #4481eb 0%, #04befe 100%)',
+                    'ASMR': 'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)',
+                    'Cars': 'linear-gradient(135deg, #434343 0%, #000000 100%)',
+                    'Prank': 'linear-gradient(135deg, #fc6767 0%, #ec008c 100%)',
+                    'Lifestyle': 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+                    'Paranormal': 'linear-gradient(135deg, #2e1437 0%, #948e99 100%)',
+                    'Viral Challenges': 'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)',
+                    'Animals': 'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)'
+                };
+                const gradient = categoryGradients[market.video.type.category] || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                
+                allCardsHTML += `
+                    <div class="phone-market-card" data-market-id="${market.id}">
+                        <!-- Header (sticky, always visible) -->
+                        <div class="phone-header">
+                            <button class="phone-menu-btn" onclick="toggleMenu()">☰</button>
+                            <div class="phone-balance">${formatXC(portfolio.balance)}</div>
+                            <button class="phone-close-btn" onclick="togglePhoneMode()">×</button>
+                        </div>
+                        
+                        <div class="phone-content-wrapper">
+                            <!-- Video -->
+                            <div class="phone-video-container">
+                                <div class="phone-video-bg" style="background: ${gradient};"></div>
+                                <div class="phone-video-emoji">${market.video.type.emoji}</div>
+                            </div>
+                            
+                            <!-- Side Stats -->
+                            <div class="phone-side-stats">
+                                <div class="phone-stat">
+                                    <div class="phone-stat-icon">👁️</div>
+                                    <div class="phone-stat-value">${formatNumber(market.engagement.views)}</div>
+                                </div>
+                                <div class="phone-stat">
+                                    <div class="phone-stat-icon">❤️</div>
+                                    <div class="phone-stat-value">${formatNumber(market.engagement.likes)}</div>
+                                </div>
+                                <div class="phone-stat">
+                                    <div class="phone-stat-icon">🔄</div>
+                                    <div class="phone-stat-value">${formatNumber(market.engagement.shares)}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Bottom Info -->
+                            <div class="phone-bottom-info">
+                                <div class="phone-creator">@${market.video.creator}</div>
+                                <div class="phone-question">${market.question}</div>
+                                <div class="phone-badges">
+                                    ${badges.map(b => `<span class="phone-badge ${b.class}">${b.text}</span>`).join('')}
+                                </div>
+                            </div>
+                            
+                            <!-- Trade Button -->
+                            <button class="phone-trade-btn" onclick="openPhoneSheet(${market.id})">📊 Trade</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            screen.innerHTML = allCardsHTML;
+        }
+
+        function renderPhoneSheet(market) {
+            const yesPrice = getYesPrice(market);
+            const noPrice = getNoPrice(market);
+            const content = document.getElementById('phone-sheet-content');
+            
+            content.innerHTML = `
+                <!-- Tabs -->
+                <div class="sheet-tabs">
+                    <button class="sheet-tab ${currentPhoneTab === 'contracts' ? 'active' : ''}" onclick="switchPhoneTab('contracts')">Contracts</button>
+                    <button class="sheet-tab ${currentPhoneTab === 'views' ? 'active' : ''}" onclick="switchPhoneTab('views')">Views</button>
+                    <button class="sheet-tab ${currentPhoneTab === 'likes' ? 'active' : ''}" onclick="switchPhoneTab('likes')">Likes</button>
+                    <button class="sheet-tab ${currentPhoneTab === 'shares' ? 'active' : ''}" onclick="switchPhoneTab('shares')">Shares</button>
+                </div>
+                
+                <!-- Chart -->
+                <div class="sheet-chart-container">
+                    <canvas id="phone-chart-${market.id}" class="sheet-chart"></canvas>
+                </div>
+                
+                <!-- Odds -->
+                <div class="sheet-odds">
+                    <div class="sheet-odd-card yes">
+                        <div style="color: var(--yes-green); font-weight: bold; margin-bottom: 5px;">YES</div>
+                        <div style="font-size: 1.5em; font-weight: bold;">${(yesPrice * 100).toFixed(0)}%</div>
+                        <div style="color: var(--text-muted); font-size: 0.85em;">${formatXC(yesPrice)}</div>
+                    </div>
+                    <div class="sheet-odd-card no">
+                        <div style="color: var(--no-red); font-weight: bold; margin-bottom: 5px;">NO</div>
+                        <div style="font-size: 1.5em; font-weight: bold;">${(noPrice * 100).toFixed(0)}%</div>
+                        <div style="color: var(--text-muted); font-size: 0.85em;">${formatXC(noPrice)}</div>
+                    </div>
+                </div>
+                
+                <!-- Trade Section -->
+                <div class="sheet-trade-section">
+                    <div class="sheet-input-row">
+                        <input type="number" class="sheet-input" id="phone-trade-amount" placeholder="Amount (XC)" value="100">
+                    </div>
+                    <div class="quick-amounts">
+                        <button class="quick-btn" onclick="document.getElementById('phone-trade-amount').value = 50">50</button>
+                        <button class="quick-btn" onclick="document.getElementById('phone-trade-amount').value = 100">100</button>
+                        <button class="quick-btn" onclick="document.getElementById('phone-trade-amount').value = 250">250</button>
+                        <button class="quick-btn" onclick="document.getElementById('phone-trade-amount').value = 500">500</button>
+                        <button class="quick-btn max" onclick="document.getElementById('phone-trade-amount').value = ${portfolio.balance}">MAX</button>
+                    </div>
+                    <div class="sheet-input-row">
+                        <button class="sheet-btn buy-yes" onclick="phoneTradeAndClose(${market.id}, 'yes')">BUY YES</button>
+                        <button class="sheet-btn buy-no" onclick="phoneTradeAndClose(${market.id}, 'no')">BUY NO</button>
+                    </div>
+                </div>
+            `;
+            
+            // Render chart after a small delay
+            setTimeout(() => {
+                renderPhoneChart(market);
+            }, 100);
+        }
+
+        function renderPhoneChart(market) {
+            const canvasId = `phone-chart-${market.id}`;
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            
+            // Destroy existing chart if any
+            if (window.phoneChart) {
+                window.phoneChart.destroy();
+            }
+            
+            let datasets, yAxisConfig;
+            
+            if (currentPhoneTab === 'contracts') {
+                const noPrices = market.history.odds.map(o => 100 - o);
+                datasets = [
+                    {
+                        label: 'YES',
+                        data: market.history.odds,
+                        borderColor: '#00ff00',
+                        backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0
+                    },
+                    {
+                        label: 'NO',
+                        data: noPrices,
+                        borderColor: '#ff4444',
+                        backgroundColor: 'rgba(255, 68, 68, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0
+                    }
+                ];
+                yAxisConfig = {
+                    min: 0,
+                    max: 100,
+                    ticks: { callback: v => v + '%', color: '#888' },
+                    grid: { color: '#222' }
+                };
+            } else {
+                const colors = { views: '#00ffff', likes: '#ff69b4', shares: '#ffa500' };
+                datasets = [{
+                    label: currentPhoneTab.charAt(0).toUpperCase() + currentPhoneTab.slice(1),
+                    data: market.history[currentPhoneTab],
+                    borderColor: colors[currentPhoneTab],
+                    backgroundColor: colors[currentPhoneTab] + '33',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    borderWidth: 2
+                }];
+                yAxisConfig = {
+                    ticks: { callback: v => formatNumber(v), color: '#888' },
+                    grid: { color: '#222' }
+                };
+            }
+            
+            window.phoneChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: market.history.time, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 750 },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#666' }, grid: { display: false } },
+                        y: yAxisConfig
+                    }
+                }
+            });
+        }
+
+        function switchPhoneTab(tab) {
+            currentPhoneTab = tab;
+            if (!currentPhoneMarket) return;
+            const market = markets.find(m => m.id === currentPhoneMarket);
+            if (market) {
+                renderPhoneSheet(market);
+            }
+        }
+
+        function openPhoneSheet(marketId) {
+            const market = markets.find(m => m.id === marketId);
+            if (!market) return;
+            
+            phoneSheetOpen = true;
+            currentPhoneMarket = marketId;
+            const sheet = document.getElementById('phone-sheet');
+            if (!sheet) {
+                // Create sheet dynamically if it doesn't exist
+                const phoneFrame = document.querySelector('.phone-frame');
+                const sheetHTML = `
+                    <div class="phone-bottom-sheet active" id="phone-sheet">
+                        <div class="sheet-handle" onclick="closePhoneSheet()"></div>
+                        <button class="sheet-close-btn" onclick="closePhoneSheet()">×</button>
+                        <div class="sheet-content" id="phone-sheet-content"></div>
+                    </div>
+                `;
+                phoneFrame.insertAdjacentHTML('beforeend', sheetHTML);
+            } else {
+                sheet.classList.add('active');
+            }
+            
+            renderPhoneSheet(market);
+        }
+
+        function closePhoneSheet() {
+            phoneSheetOpen = false;
+            const sheet = document.getElementById('phone-sheet');
+            if (sheet) {
+                sheet.classList.remove('active');
+            }
+        }
+
+        function togglePhoneSheet() {
+            phoneSheetOpen = !phoneSheetOpen;
+            const sheet = document.getElementById('phone-sheet');
+            const activeMarkets = markets.filter(m => !m.resolved);
+            const market = activeMarkets[currentPhoneIndex];
+            
+            if (phoneSheetOpen) {
+                sheet.classList.add('active');
+                renderPhoneSheet(market);
+            } else {
+                sheet.classList.remove('active');
+            }
+        }
+
+        function phoneTradeAndClose(marketId, side) {
+            const amount = parseFloat(document.getElementById('phone-trade-amount').value) || 0;
+            if (amount > 0 && amount <= portfolio.balance) {
+                buyContracts(marketId, side, amount);
+                closePhoneSheet();
+                
+                // Update all views
+                renderPhone(); // Re-render phone view to show updated data
+                updateBalanceBar(); // Update balance bar at top
+                displayMarkets(); // Update main page markets
+                updatePortfolioDisplay(); // Update portfolio
+            } else if (amount > portfolio.balance) {
+                alert('Insufficient balance!');
+            } else {
+                alert('Please enter a valid amount');
+            }
+        }
+
+        function phoneNext() {
+            const activeMarkets = markets.filter(m => !m.resolved);
+            if (currentPhoneIndex < activeMarkets.length - 1) {
+                currentPhoneIndex++;
+                phoneSheetOpen = false;
+                renderPhone();
+            }
+        }
+
+        function phonePrev() {
+            if (currentPhoneIndex > 0) {
+                currentPhoneIndex--;
+                phoneSheetOpen = false;
+                renderPhone();
+            }
+        }
+
+        // ==================== HAMBURGER MENU FUNCTIONS ====================
+
+        function toggleMenu() {
+            const overlay = document.getElementById('menu-overlay');
+            const panel = document.getElementById('menu-panel');
+            overlay.classList.toggle('active');
+            panel.classList.toggle('active');
+        }
+
+        function closeMenu() {
+            const overlay = document.getElementById('menu-overlay');
+            const panel = document.getElementById('menu-panel');
+            overlay.classList.remove('active');
+            panel.classList.remove('active');
+        }
+
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            section.classList.toggle('collapsed');
+        }
+
+        function updateMenuAutoBtn() {
+            const statusEl = document.getElementById('menu-auto-status');
+            if (autoInterval) {
+                statusEl.textContent = 'ON';
+                statusEl.classList.add('on');
+            } else {
+                statusEl.textContent = 'OFF';
+                statusEl.classList.remove('on');
+            }
+        }
+
+        // ==================== TUTORIAL FUNCTIONS ====================
+
+        function showTutorial() {
+            document.getElementById('tutorial-overlay').classList.add('active');
+        }
+
+        function closeTutorial() {
+            document.getElementById('tutorial-overlay').classList.remove('active');
+            localStorage.setItem('trendx_tutorial_seen', 'true');
+        }
+
+        function checkTutorial() {
+            const seen = localStorage.getItem('trendx_tutorial_seen');
+            if (!seen) {
+                // Show tutorial after a short delay
+                setTimeout(() => {
+                    showTutorial();
+                }, 500);
+            }
+        }
+
+        // ==================== CHUNK 7: PORTFOLIO & PERSISTENCE ====================
+
+        const STORAGE_KEY = 'trendx_demo_v1';
+
+        function savePortfolio() {
+            const data = {
+                balance: portfolio.balance,
+                initialBalance: portfolio.initialBalance,
+                positions: portfolio.positions,
+                tradeHistory: portfolio.tradeHistory,
+                realizedPnL: portfolio.realizedPnL,
+                currentTime: currentTime,
+                markets: markets
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        function loadPortfolio() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    portfolio.balance = data.balance;
+                    portfolio.initialBalance = data.initialBalance;
+                    portfolio.positions = data.positions || [];
+                    portfolio.tradeHistory = data.tradeHistory || [];
+                    portfolio.realizedPnL = data.realizedPnL || 0;
+                    currentTime = data.currentTime || 0;
+                    markets = data.markets || [];
+                    
+                    console.log('Portfolio loaded from localStorage!');
+                    return true;
+                } catch (e) {
+                    console.error('Failed to load portfolio:', e);
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        // ==================== CHUNK 3: UI DISPLAY ====================
+
+        function displayMarkets() {
+            const grid = document.getElementById('markets-grid');
+            grid.innerHTML = '';
+            
+            const filteredMarkets = getFilteredMarkets();
+            
+            if (filteredMarkets.length === 0) {
+                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">No markets match your filters</div>';
+                return;
+            }
+            
+            filteredMarkets.forEach(market => {
+                const card = createMarketCard(market);
+                grid.appendChild(card);
+            });
+        }
+
+        function createMarketCard(market) {
+            const card = document.createElement('div');
+            card.className = 'market-card';
+            
+            // Calculate current values
+            const yesPrice = getYesPrice(market);
+            const noPrice = getNoPrice(market);
+            const progress = (market.engagement[market.metric] / market.target) * 100;
+            const hoursLeft = market.deadline - currentTime;
+            
+            // Get position if exists
+            const position = portfolio.positions.find(p => p.marketId === market.id);
+            
+            // Growth badge and additional badges
+            let badges = [];
+            
+            // Growth badge (HOT/WARM/COLD)
+            if (progress > 70) {
+                badges.push({ text: '🔥 HOT', class: 'hot' });
+            } else if (progress > 40) {
+                badges.push({ text: '📈 WARM', class: 'warm' });
+            } else {
+                badges.push({ text: '❄️ COLD', class: 'cold' });
+            }
+            
+            // Ending soon badge
+            if (hoursLeft <= 12 && hoursLeft > 0) {
+                badges.push({ text: '⏰ ENDING SOON', class: 'ending-soon' });
+            }
+            
+            // Best odds badge (close to 50/50)
+            if (yesPrice >= 0.45 && yesPrice <= 0.55) {
+                badges.push({ text: '⚖️ BEST ODDS', class: 'best-odds' });
+            }
+            
+            // Popular badge (high bot activity or large pools)
+            if (market.yesPool + market.noPool > 2000) {
+                badges.push({ text: '⭐ POPULAR', class: 'popular' });
+            }
+            
+            // Build HTML
+            let html = '';
+            
+            // Resolved banner
+            if (market.resolved) {
+                const outcomeClass = market.outcome === 'yes' ? 'yes' : 'no';
+                const outcomeText = market.outcome === 'yes' ? 'YES WON ✅' : 'NO WON ❌';
+                html += `<div class="resolved-banner ${outcomeClass}">${outcomeText}</div>`;
+            }
+            
+            // Header
+            html += `
+                <div class="market-header">
+                    <div class="market-category">
+                        <span>${market.video.type.emoji}</span>
+                        <span>${market.video.type.category}</span>
+                    </div>
+                    ${!market.resolved ? badges.map(b => `<span class="market-badge ${b.class}">${b.text}</span>`).join('') : ''}
+                </div>
+            `;
+            
+            // Creator
+            html += `<div class="market-creator">@${market.video.creator}</div>`;
+            
+            // Video Thumbnail - Category-themed gradient backgrounds
+            const categoryGradients = {
+                'Pets': 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)',
+                'Music': 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+                'Dance': 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+                'Meme': 'linear-gradient(135deg, #fff1eb 0%, #ace0f9 100%)',
+                'Gaming': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'Food': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'Sports': 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'Entertainment': 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'Art': 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                'Comedy': 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+                'Beauty': 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+                'Fitness': 'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)',
+                'Family': 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+                'Educational': 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)',
+                'Fashion': 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+                'DIY': 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)',
+                'Travel': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'Tech': 'linear-gradient(135deg, #4481eb 0%, #04befe 100%)',
+                'ASMR': 'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)',
+                'Cars': 'linear-gradient(135deg, #434343 0%, #000000 100%)',
+                'Prank': 'linear-gradient(135deg, #fc6767 0%, #ec008c 100%)',
+                'Lifestyle': 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+                'Paranormal': 'linear-gradient(135deg, #2e1437 0%, #948e99 100%)',
+                'Viral Challenges': 'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)',
+                'Animals': 'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)'
+            };
+            
+            const gradient = categoryGradients[market.video.type.category] || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            const emoji = market.video.type.emoji;
+            
+            html += `
+                <div class="market-thumbnail" style="background: ${gradient};">
+                    <div class="thumbnail-placeholder">
+                        <div class="thumbnail-placeholder-icon">${emoji}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Question
+            html += `<div class="market-question">${market.question}</div>`;
+            
+            // Deadline
+            if (!market.resolved) {
+                html += `<div class="market-deadline">⏰ ${hoursLeft}h left</div>`;
+            }
+            
+            // Engagement stats
+            const viewsGrowth = market.history.views.length > 1 
+                ? ((market.history.views[market.history.views.length - 1] - market.history.views[market.history.views.length - 2]) / market.history.views[market.history.views.length - 2] * 100).toFixed(1)
+                : 0;
+            const likesGrowth = market.history.likes.length > 1
+                ? ((market.history.likes[market.history.likes.length - 1] - market.history.likes[market.history.likes.length - 2]) / market.history.likes[market.history.likes.length - 2] * 100).toFixed(1)
+                : 0;
+            const sharesGrowth = market.history.shares.length > 1
+                ? ((market.history.shares[market.history.shares.length - 1] - market.history.shares[market.history.shares.length - 2]) / market.history.shares[market.history.shares.length - 2] * 100).toFixed(1)
+                : 0;
+            
+            html += `
+                <div class="engagement-stats">
+                    <div class="engagement-stat">👁️ <strong>${formatNumber(market.engagement.views)}</strong> <span style="color: #00ff00">(+${viewsGrowth}%/hr)</span></div>
+                    <div class="engagement-stat">❤️ <strong>${formatNumber(market.engagement.likes)}</strong> <span style="color: #00ff00">(+${likesGrowth}%/hr)</span></div>
+                    <div class="engagement-stat">🔄 <strong>${formatNumber(market.engagement.shares)}</strong> <span style="color: #00ff00">(+${sharesGrowth}%/hr)</span></div>
+                </div>
+            `;
+            
+            // Progress bar
+            html += `
+                <div class="progress-section">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(100, progress)}%"></div>
+                    </div>
+                    <div class="progress-text">${formatNumber(market.engagement[market.metric])} / ${formatNumber(market.target)} ${market.metric} (${progress.toFixed(0)}%)</div>
+                </div>
+            `;
+            
+            // Betting section (only if not resolved)
+            if (!market.resolved) {
+                html += `
+                    <div class="betting-section">
+                        <div class="odds-display">
+                            <div class="odd-card yes">
+                                <div class="odd-label">YES</div>
+                                <div class="odd-price">${(yesPrice * 100).toFixed(0)}%</div>
+                                <div class="odd-cost">@ ${yesPrice.toFixed(2)} XC</div>
+                                <div class="odd-win">Win: +${(1 - yesPrice).toFixed(2)} XC</div>
+                            </div>
+                            <div class="odd-card no">
+                                <div class="odd-label">NO</div>
+                                <div class="odd-price">${(noPrice * 100).toFixed(0)}%</div>
+                                <div class="odd-cost">@ ${noPrice.toFixed(2)} XC</div>
+                                <div class="odd-win">Win: +${(1 - noPrice).toFixed(2)} XC</div>
+                            </div>
+                        </div>
+                        
+                        <div class="trade-input">
+                            <label>Amount:</label>
+                            <input type="number" id="buy-amount-${market.id}" placeholder="0" min="0" max="${portfolio.balance}" step="10">
+                            <span>XC</span>
+                        </div>
+                        <div class="quick-amounts">
+                            <button class="quick-btn" onclick="setQuickAmount(${market.id}, 50)">50</button>
+                            <button class="quick-btn" onclick="setQuickAmount(${market.id}, 100)">100</button>
+                            <button class="quick-btn" onclick="setQuickAmount(${market.id}, 250)">250</button>
+                            <button class="quick-btn" onclick="setQuickAmount(${market.id}, 500)">500</button>
+                            <button class="quick-btn max" onclick="setQuickAmount(${market.id}, ${portfolio.balance})">MAX</button>
+                        </div>
+                        <div class="trade-input">
+                            <button class="btn-buy-yes" onclick="buyContracts(${market.id}, 'yes')">BUY YES</button>
+                            <button class="btn-buy-no" onclick="buyContracts(${market.id}, 'no')">BUY NO</button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // PHASE 2: Chart Section
+            html += `
+                <div class="chart-section">
+                    <div class="chart-legend" id="legend-${market.id}">
+                        <span class="legend-item yes">● YES ${(yesPrice * 100).toFixed(0)}%</span>
+                        <span class="legend-item no">● NO ${(100 - yesPrice * 100).toFixed(0)}%</span>
+                    </div>
+                    <div class="chart-tabs" id="chart-tabs-${market.id}">
+                        <button class="chart-tab active" data-tab="contracts" onclick="switchChartTab(${market.id}, 'contracts')">📈 Contracts</button>
+                        <button class="chart-tab" data-tab="views" onclick="switchChartTab(${market.id}, 'views')">👁️ Views</button>
+                        <button class="chart-tab" data-tab="likes" onclick="switchChartTab(${market.id}, 'likes')">❤️ Likes</button>
+                        <button class="chart-tab" data-tab="shares" onclick="switchChartTab(${market.id}, 'shares')">🔄 Shares</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-${market.id}"></canvas>
+                    </div>
+                </div>
+            `;
+            
+            // Position section (if exists)
+            if (position) {
+                const posValue = getPositionValue(position, market);
+                const pnlClass = posValue.pnl >= 0 ? 'positive' : 'negative';
+                const pnlSymbol = posValue.pnl >= 0 ? '+' : '';
+                
+                html += `
+                    <div class="position-section">
+                        <div class="position-header">📊 YOUR POSITION: ${position.side.toUpperCase()}</div>
+                        <div class="position-details">
+                            <div class="position-detail"><strong>${position.contracts.toFixed(1)}</strong> contracts</div>
+                            <div class="position-detail">Avg: <strong>${position.avgPrice.toFixed(2)}</strong> XC</div>
+                            <div class="position-detail">Now: <strong>${posValue.currentPrice.toFixed(2)}</strong> XC</div>
+                            <div class="position-detail">Value: <strong>${formatXC(posValue.currentValue)}</strong></div>
+                        </div>
+                        <div class="position-pnl ${pnlClass}">
+                            P&L: ${pnlSymbol}${formatXC(posValue.pnl)} (${pnlSymbol}${posValue.pnlPercent.toFixed(1)}%) ${posValue.pnl >= 0 ? '✅' : '❌'}
+                        </div>
+                        ${!market.resolved ? `
+                            <div class="sell-controls">
+                                <label>Sell:</label>
+                                <input type="number" id="sell-amount-${market.id}" placeholder="0" min="0" max="${position.contracts}" step="10">
+                                <button onclick="sellContracts(${market.id}, '${position.side}', parseFloat(document.getElementById('sell-amount-${market.id}').value))">SELL</button>
+                                <button onclick="sellContracts(${market.id}, '${position.side}', ${position.contracts})">SELL ALL</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            
+            card.innerHTML = html;
+            return card;
+        }
+
+        function updatePortfolioDisplay() {
+            // Calculate position value
+            let positionsValue = 0;
+            portfolio.positions.forEach(pos => {
+                const market = markets.find(m => m.id === pos.marketId);
+                if (market) {
+                    const posValue = getPositionValue(pos, market);
+                    positionsValue += posValue.currentValue;
+                }
+            });
+            
+            const totalValue = portfolio.balance + positionsValue;
+            const totalPnL = totalValue - portfolio.initialBalance;
+            
+            // Update header stats
+            document.getElementById('balance').textContent = formatXC(portfolio.balance);
+            document.getElementById('positions-value').textContent = formatXC(positionsValue);
+            document.getElementById('total-value').textContent = formatXC(totalValue);
+            
+            const pnlEl = document.getElementById('pnl');
+            const pnlSymbol = totalPnL >= 0 ? '+' : '';
+            pnlEl.textContent = pnlSymbol + formatXC(totalPnL) + (totalPnL >= 0 ? ' ✅' : ' ❌');
+            pnlEl.style.color = totalPnL >= 0 ? 'var(--yes-green)' : 'var(--no-red)';
+        }
+
+        function getYesPrice(market) {
+            return market.yesPool / (market.yesPool + market.noPool);
+        }
+
+        function getNoPrice(market) {
+            return market.noPool / (market.yesPool + market.noPool);
+        }
+
+        function getPositionValue(position, market) {
+            const currentPrice = position.side === 'yes' ? getYesPrice(market) : getNoPrice(market);
+            const currentValue = position.contracts * currentPrice;
+            const pnl = currentValue - position.totalCost;
+            const pnlPercent = (pnl / position.totalCost) * 100;
+            
+            return {
+                currentPrice,
+                currentValue,
+                pnl,
+                pnlPercent
+            };
+        }
+
+        function getPositionValue(position, market) {
+            const currentPrice = position.side === 'yes' ? getYesPrice(market) : getNoPrice(market);
+            const currentValue = position.contracts * currentPrice;
+            const pnl = currentValue - position.totalCost;
+            const pnlPercent = (pnl / position.totalCost) * 100;
+            
+            return { currentPrice, currentValue, pnl, pnlPercent };
+        }
+
+        // ==================== PHASE 3: CATEGORY SVG BACKGROUNDS ====================
+
+        function getCategoryBackground(category, emoji) {
+            const backgrounds = {
+                'Pets': `
+                    <svg viewBox="0 0 400 800" class="fyp-svg-bg">
+                        <defs>
+                            <radialGradient id="glow-pets" cx="50%" cy="40%" r="60%">
+                                <stop offset="0%" style="stop-color:#00ff00;stop-opacity:0.3"/>
+                                <stop offset="100%" style="stop-color:#000;stop-opacity:0"/>
+                            </radialGradient>
+                        </defs>
+                        <rect fill="#000" width="400" height="800"/>
+                        <rect fill="url(#glow-pets)" width="400" height="800"/>
+                        <text x="200" y="350" font-size="180" text-anchor="middle" opacity="0.15">${emoji}</text>
+                        <circle cx="80" cy="650" r="40" fill="#00ff00" opacity="0.1"/>
+                        <circle cx="320" cy="150" r="60" fill="#00ff00" opacity="0.08"/>
+                    </svg>`,
+                    
+                'Music': `
+                    <svg viewBox="0 0 400 800" class="fyp-svg-bg">
+                        <defs>
+                            <radialGradient id="glow-music" cx="50%" cy="40%" r="60%">
+                                <stop offset="0%" style="stop-color:#ff00ff;stop-opacity:0.3"/>
+                                <stop offset="100%" style="stop-color:#000;stop-opacity:0"/>
+                            </radialGradient>
+                        </defs>
+                        <rect fill="#000" width="400" height="800"/>
+                        <rect fill="url(#glow-music)" width="400" height="800"/>
+                        <text x="200" y="350" font-size="180" text-anchor="middle" opacity="0.15">${emoji}</text>
+                        <path d="M50,500 Q150,450 200,500 T350,500" stroke="#ff00ff" fill="none" stroke-width="3" opacity="0.2"/>
+                        <path d="M50,550 Q150,500 200,550 T350,550" stroke="#00ffff" fill="none" stroke-width="2" opacity="0.15"/>
+                    </svg>`,
+                    
+                'Dance': `
+                    <svg viewBox="0 0 400 800" class="fyp-svg-bg">
+                        <defs>
+                            <radialGradient id="glow-dance" cx="50%" cy="40%" r="60%">
+                                <stop offset="0%" style="stop-color:#ff1493;stop-opacity:0.3"/>
+                                <stop offset="100%" style="stop-color:#000;stop-opacity:0"/>
+                            </radialGradient>
+                        </defs>
+                        <rect fill="#000" width="400" height="800"/>
+                        <rect fill="url(#glow-dance)" width="400" height="800"/>
+                        <text x="200" y="350" font-size="180" text-anchor="middle" opacity="0.15">${emoji}</text>
+                        <circle cx="200" cy="400" r="120" stroke="#ff1493" fill="none" stroke-width="2" opacity="0.15"/>
+                        <circle cx="200" cy="400" r="180" stroke="#ff1493" fill="none" stroke-width="1" opacity="0.08"/>
+                    </svg>`,
+                    
+                'Meme': `
+                    <svg viewBox="0 0 400 800" class="fyp-svg-bg">
+                        <defs>
+                            <radialGradient id="glow-meme" cx="50%" cy="40%" r="60%">
+                                <stop offset="0%" style="stop-color:#ffff00;stop-opacity:0.25"/>
+                                <stop offset="100%" style="stop-color:#000;stop-opacity:0"/>
+                            </radialGradient>
+                        </defs>
+                        <rect fill="#000" width="400" height="800"/>
+                        <rect fill="url(#glow-meme)" width="400" height="800"/>
+                        <text x="200" y="350" font-size="180" text-anchor="middle" opacity="0.15">${emoji}</text>
+                        <text x="100" y="550" font-size="50" opacity="0.12">😂</text>
+                        <text x="280" y="200" font-size="60" opacity="0.1">💀</text>
+                    </svg>`,
+                    
+                'Gaming': `
+                    <svg viewBox="0 0 400 800" class="fyp-svg-bg">
+                        <defs>
+                            <radialGradient id="glow-gaming" cx="50%" cy="40%" r="60%">
+                                <stop offset="0%" style="stop-color:#9400d3;stop-opacity:0.3"/>
+                                <stop offset="100%" style="stop-color:#000;stop-opacity:0"/>
+                            </radialGradient>
+                        </defs>
+                        <rect fill="#000" width="400" height="800"/>
+                        <rect fill="url(#glow-gaming)" width="400" height="800"/>
+                        <text x="200" y="350" font-size="180" text-anchor="middle" opacity="0.15">${emoji}</text>
+                        <rect x="140" y="550" width="120" height="70" rx="15" stroke="#9400d3" fill="none" opacity="0.15" stroke-width="2"/>
+                    </svg>`,
+                    
+                'Food': `
+                    <svg viewBox="0 0 400 800" class="fyp-svg-bg">
+                        <defs>
+                            <radialGradient id="glow-food" cx="50%" cy="40%" r="60%">
+                                <stop offset="0%" style="stop-color:#ff6600;stop-opacity:0.3"/>
+                                <stop offset="100%" style="stop-color:#000;stop-opacity:0"/>
+                            </radialGradient>
+                        </defs>
+                        <rect fill="#000" width="400" height="800"/>
+                        <rect fill="url(#glow-food)" width="400" height="800"/>
+                        <text x="200" y="350" font-size="180" text-anchor="middle" opacity="0.15">${emoji}</text>
+                        <circle cx="200" cy="550" r="80" stroke="#ff6600" fill="none" stroke-width="3" opacity="0.12"/>
+                    </svg>`,
+                    
+                'Comedy': `
+                    <svg viewBox="0 0 400 800" class="fyp-svg-bg">
+                        <defs>
+                            <radialGradient id="glow-comedy" cx="50%" cy="40%" r="60%">
+                                <stop offset="0%" style="stop-color:#ffff00;stop-opacity:0.25"/>
+                                <stop offset="100%" style="stop-color:#000;stop-opacity:0"/>
+                            </radialGradient>
+                        </defs>
+                        <rect fill="#000" width="400" height="800"/>
+                        <rect fill="url(#glow-comedy)" width="400" height="800"/>
+                        <text x="200" y="350" font-size="180" text-anchor="middle" opacity="0.15">${emoji}</text>
+                        <text x="120" y="580" font-size="70" opacity="0.12">🤣</text>
+                        <text x="260" y="180" font-size="40" opacity="0.08">😂</text>
+                    </svg>`
+            };
+            
+            // Default for categories not specifically defined
+            return backgrounds[category] || `
+                <svg viewBox="0 0 400 800" class="fyp-svg-bg">
+                    <defs>
+                        <radialGradient id="glow-default" cx="50%" cy="40%" r="60%">
+                            <stop offset="0%" style="stop-color:#00ffff;stop-opacity:0.25"/>
+                            <stop offset="100%" style="stop-color:#000;stop-opacity:0"/>
+                        </radialGradient>
+                    </defs>
+                    <rect fill="#000" width="400" height="800"/>
+                    <rect fill="url(#glow-default)" width="400" height="800"/>
+                    <text x="200" y="350" font-size="180" text-anchor="middle" opacity="0.15">${emoji}</text>
+                </svg>`;
+        }
+
+        function getGrowthIndicator(market) {
+            if (market.history.views.length < 2) return { text: '📊 NEW', class: 'cold' };
+            
+            const recent = market.history.views.slice(-2);
+            const growthRate = (recent[1] - recent[0]) / recent[0];
+            
+            if (growthRate > 0.10) return { text: '🔥 HOT', class: 'hot' };
+            if (growthRate > 0.03) return { text: '📈 WARM', class: 'warm' };
+            return { text: '❄️ COLD', class: 'cold' };
+        }
+
+        function displayMarkets() {
+            const grid = document.getElementById('markets-grid');
+            grid.innerHTML = '';
+            
+            markets.forEach(market => {
+                const card = createMarketCard(market);
+                grid.appendChild(card);
+            });
+            
+            // PHASE 2: Create charts after DOM is ready
+            setTimeout(() => {
+                markets.forEach(market => {
+                    const tab = activeChartTabs[market.id] || 'contracts';
+                    createChart(market, tab);
+                });
+            }, 100);
+        }
+
+        function updatePortfolioDisplay() {
+            // Calculate position value
+            let positionsValue = 0;
+            portfolio.positions.forEach(pos => {
+                const market = markets.find(m => m.id === pos.marketId);
+                if (market) {
+                    const posValue = getPositionValue(pos, market);
+                    positionsValue += posValue.currentValue;
+                }
+            });
+            
+            const totalValue = portfolio.balance + positionsValue;
+            const totalPnL = totalValue - portfolio.initialBalance;
+            
+            // Update header stats
+            document.getElementById('balance').textContent = formatXC(portfolio.balance);
+            document.getElementById('positions-value').textContent = formatXC(positionsValue);
+            document.getElementById('total-value').textContent = formatXC(totalValue);
+            
+            const pnlEl = document.getElementById('pnl');
+            const pnlSymbol = totalPnL >= 0 ? '+' : '';
+            pnlEl.textContent = pnlSymbol + formatXC(totalPnL) + (totalPnL >= 0 ? ' ✅' : ' ❌');
+            pnlEl.style.color = totalPnL >= 0 ? 'var(--yes-green)' : 'var(--no-red)';
+        }
+
+        function resetAll() {
+            if (confirm('Reset everything?')) {
+                currentTime = 0;
+                portfolio = {
+                    balance: 1000,
+                    initialBalance: 1000,
+                    positions: [],
+                    tradeHistory: [],
+                    realizedPnL: 0
+                };
+                markets = [];
+                if (autoInterval) {
+                    clearInterval(autoInterval);
+                    autoInterval = null;
+                    document.getElementById('auto-btn').textContent = 'Auto: OFF';
+                }
+                generateNewMarkets();
+                localStorage.removeItem('trendx_demo_v1');
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('TrendX Phase 1 - All Chunks Loaded! ✅');
+            console.log('Video Types:', VIDEO_TYPES.length);
+            console.log('Creator Names:', CREATOR_NAMES.length);
+            console.log('Growth Patterns:', Object.keys(GROWTH_PATTERNS).length);
+            
+            // Try to load saved portfolio
+            const loaded = loadPortfolio();
+            
+            if (loaded && markets.length > 0) {
+                // Resume from saved state
+                console.log('Resuming from saved state...');
+                document.getElementById('current-time').textContent = currentTime;
+                displayMarkets();
+                updatePortfolioDisplay();
+            } else {
+                // Start fresh
+                console.log('Starting fresh...');
+                generateNewMarkets();
+            }
+            
+            // Check if should show tutorial
+            checkTutorial();
+        });
+    </script>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+</body>
+</html>
